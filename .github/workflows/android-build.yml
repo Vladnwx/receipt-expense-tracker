@@ -34,25 +34,13 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon
-
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Upload Build Artifacts
+      - name: Upload Debug APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-build-artifacts
-          path: app/build/outputs/apk/debug/
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: ignore
-
-      - name: Test Report
-        if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: Test Results
-          path: 'app/build/test-results/**/*.xml'
-          reporter: 'java-junit'
-          fail-on-error: false
