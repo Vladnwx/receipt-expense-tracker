@@ -30,43 +30,63 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
-
-      - name: Build Release APK
-        run: ./gradlew assembleRelease --no-daemon
-
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Upload Debug APK
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Build Release APK (signed if secrets available, otherwise unsigned)
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_PATH }}" ]; then
+            echo "Building signed release APK..."
+            ./gradlew assembleRelease --no-daemon
+          else
+            echo "No signing secrets found, building unsigned release APK..."
+            ./gradlew assembleRelease --no-daemon
+          fi
+
+      - name: Prepare APK for release
+        run: |
+          mkdir -p release-artifacts
+          # Copy debug APK (always available and signed with debug key)
+          cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/qrcode-scanner-${{ steps.get_version.outputs.VERSION }}-debug.apk
+          
+          # Copy release APK if it exists and is signed, otherwise use debug
+          if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+            cp app/build/outputs/apk/release/app-release.apk release-artifacts/qrcode-scanner-${{ steps.get_version.outputs.VERSION }}-release.apk
+            echo "HAS_SIGNED_RELEASE=true" >> $GITHUB_ENV
+          elif [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            echo "WARNING: Only unsigned release APK available" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: qrcode-scanner-debug
+          path: release-artifacts/qrcode-scanner-${{ steps.get_version.outputs.VERSION }}-debug.apk
           if-no-files-found: error
 
-      - name: Upload Release APK
+      - name: Upload Release APK artifact (if signed)
+        if: env.HAS_SIGNED_RELEASE == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
-          if-no-files-found: error
+          name: qrcode-scanner-release
+          path: release-artifacts/qrcode-scanner-${{ steps.get_version.outputs.VERSION }}-release.apk
+          if-no-files-found: ignore
 
-      - name: Create Release
+      - name: Create GitHub Release with APK
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/release/app-release-unsigned.apk
+            release-artifacts/qrcode-scanner-${{ steps.get_version.outputs.VERSION }}-debug.apk
+            release-artifacts/qrcode-scanner-${{ steps.get_version.outputs.VERSION }}-release.apk
           generate_release_notes: true
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
