@@ -1,54 +1,53 @@
-```
-# Android build outputs
-build/
-.externalNativeBuild/
-.intermediates/
-.profile/
+# Examples 1:
 
-# Android studio
-.gradle/
-local.properties
-captures/
+    Input:
+    ### Added files:
+    [src/main.py, README.md, config.json]
 
-# Android packaging
-*.apk
-*.ap_
-*.aab
+    ### Deleted files:
+    [old/unused.py]
+    ### Modified files:
+    [utils.py]
+    ###current .gitignore Content
+    (empty)
+    Expected Output:
+    (empty — output nothing)
 
-# Generated files
-gen/
-out/
+# Example 2 (Project with artifacts):
+Input:
+### Added files:
+[pycache/main.cpython-310.pyc, dist/app.js, .env.local, .vscode/settings.json
 
-# Local configuration file (sdk path, etc)
-local.properties
+### Deleted files:
+    []
 
-# Log Files
+### Modified files:
+[]
+### current .gitignore Content
 *.log
-
-# Android Studio Navigation editor temp files
-.navigation/
-
-# Android Coverage
-*.ec
-*.db
-
-# Project backup
-*.bak
-
-# IDE
-.idea/
-*.iml
-*.iws
-
-# Environment
-.env
-.env.local
-.env.*
-
-# Logs
-*.log
-
-# Temp files
-*.tmp
-*.temp
-```
+Expected Output:
+    #Compiled and build artifacts
+    *.pyc
+    pycache/
+    *.o
+    *.obj
+    dist/
+    build/
+    #Dependencies
+    .venv/
+    venv/
+    node_modules/
+    #Logs and temp files
+    *.log
+    *.tmp
+    *.swp
+    #Environment
+    .env
+    .env.local
+    .env.
+    #Editors
+    .vscode/
+    .idea/
+    #Original rules preserved
+    *.log
+Final reminder: Output ONLY the .gitignore content. If nothing should be ignored, output NOTHING.

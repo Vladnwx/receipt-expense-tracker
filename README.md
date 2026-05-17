@@ -1,60 +1,60 @@
 # QR Code Scanner
 
-Modern Android application for scanning QR codes using CameraX and ML Kit.
+Современное Android-приложение для сканирования QR-кодов с использованием CameraX и ML Kit.
 
-## Features
+## Возможности
 
-- 📷 Real-time QR code scanning using CameraX
-- 🎯 ML Kit barcode scanning for accurate detection
-- 🔒 Runtime permission handling
-- 🎨 Material Design 3 UI
-- 🌙 Day/Night theme support
-- 📦 Automated GitHub Releases
+- 📷 Сканирование QR-кодов в реальном времени с помощью CameraX
+- 🎯 Распознавание штрих-кодов через ML Kit для точного обнаружения
+- 🔒 Обработка разрешений во время выполнения
+- 🎨 Интерфейс Material Design 3
+- 🌙 Поддержка дневной/ночной темы
+- 📦 Автоматические релизы через GitHub
 
-## Tech Stack
+## Технологический стек
 
-- **Language**: Kotlin
+- **Язык**: Kotlin
 - **UI**: Material Design 3, ViewBinding
-- **Camera**: CameraX
-- **QR Scanning**: Google ML Kit Barcode Scanning
-- **Build System**: Gradle with Kotlin DSL
+- **Камера**: CameraX
+- **Сканирование QR**: Google ML Kit Barcode Scanning
+- **Система сборки**: Gradle с Kotlin DSL
 - **CI/CD**: GitHub Actions
 
-## Requirements
+## Требования
 
 - Android SDK 24+ (Android 7.0 Nougat)
 - Target SDK 34 (Android 14)
 - Java 17
-- Camera hardware
+- Наличие камеры
 
-## Permissions
+## Разрешения
 
-The app requires the following permissions:
-- `CAMERA` - For QR code scanning
+Приложение требует следующие разрешения:
+- `CAMERA` — для сканирования QR-кодов
 
-## Building
+## Сборка
 
 ```bash
-# Debug build
+# Debug-версия
 ./gradlew assembleDebug
 
-# Release build
+# Release-версия
 ./gradlew assembleRelease
 ```
 
-## Releasing
+## Публикация релиза
 
-To create a new release:
+Для создания нового релиза:
 
-1. Update version in `app/build.gradle.kts`
-2. Create and push a tag:
+1. Обновите версию в `app/build.gradle.kts`
+2. Создайте и отправьте тег:
    ```bash
    git tag v1.0.0
    git push origin v1.0.0
    ```
-3. GitHub Actions will automatically build and create a release
+3. GitHub Actions автоматически соберёт и создаст релиз
 
-## Project Structure
+## Структура проекта
 
 ```
 app/
@@ -71,6 +71,6 @@ app/
 └── proguard-rules.pro
 ```
 
-## License
+## Лицензия
 
-MIT License
+Лицензия MIT
