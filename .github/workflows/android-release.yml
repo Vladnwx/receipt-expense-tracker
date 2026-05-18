@@ -86,14 +86,27 @@ jobs:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
           VERSION: ${{ steps.get_version.outputs.VERSION }}
 
-      - name: Find Artifacts
-        id: artifacts
+      - name: Prepare Artifacts
+        id: prepare_artifacts
         run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          mkdir -p release-artifacts
+
           DEBUG_APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
           RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
-          echo "debug_path=$DEBUG_APK" >> $GITHUB_OUTPUT
-          echo "release_path=$RELEASE_APK" >> $GITHUB_OUTPUT
-          echo "✅ Найдено: $DEBUG_APK и $RELEASE_APK"
+
+          cp "$DEBUG_APK" "release-artifacts/receipt-expense-tracker-${VERSION}-debug.apk"
+          echo "debug_path=release-artifacts/receipt-expense-tracker-${VERSION}-debug.apk" >> $GITHUB_OUTPUT
+
+          if echo "$RELEASE_APK" | grep -q "unsigned"; then
+            cp "$RELEASE_APK" "release-artifacts/receipt-expense-tracker-${VERSION}-release-unsigned.apk"
+            echo "release_path=release-artifacts/receipt-expense-tracker-${VERSION}-release-unsigned.apk" >> $GITHUB_OUTPUT
+          else
+            cp "$RELEASE_APK" "release-artifacts/receipt-expense-tracker-${VERSION}-release.apk"
+            echo "release_path=release-artifacts/receipt-expense-tracker-${VERSION}-release.apk" >> $GITHUB_OUTPUT
+          fi
+
+          echo "✅ APK подготовлены"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -107,8 +120,9 @@ jobs:
 
             _Этот релиз создан автоматически._
           files: |
-            ${{ steps.artifacts.outputs.debug_path }}
-            ${{ steps.artifacts.outputs.release_path }}
+            ${{ steps.prepare_artifacts.outputs.debug_path }}
+            ${{ steps.prepare_artifacts.outputs.release_path }}
           generate_release_notes: true
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
