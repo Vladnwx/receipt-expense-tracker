@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#81C784</color>
+    <color name="primary_variant">#66BB6A</color>
+    <color name="primaryContainer">#1B5E20</color>
+    <color name="onPrimary">#003300</color>
+    <color name="secondary">#FFB74D</color>
+    <color name="secondaryContainer">#E65100</color>
+    <color name="onSecondary">#3E2723</color>
+    <color name="tertiary">#4FC3F7</color>
+    <color name="tertiaryContainer">#01579B</color>
+    <color name="background">#121212</color>
+    <color name="on_background">#E6E1E5</color>
+    <color name="surface">#1E1E1E</color>
+    <color name="on_surface">#E6E1E5</color>
+    <color name="surfaceVariant">#2D2D2D</color>
+    <color name="error">#EF5350</color>
+    <color name="onError">#601410</color>
+    <color name="success">#66BB6A</color>
+    <color name="income">#66BB6A</color>
+    <color name="expense">#EF5350</color>
+    <color name="outline">#938F99</color>
+    <color name="outlineVariant">#49454F</color>
+    <color name="cardBackground">#2D2D2D</color>
+    <color name="chipBackground">#1B5E20</color>
+    <color name="divider">#383838</color>
+</resources>

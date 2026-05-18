@@ -3,8 +3,12 @@ package com.qrcode.scanner.di
 import android.content.Context
 import androidx.room.Room
 import com.qrcode.scanner.data.local.AppDatabase
+import com.qrcode.scanner.data.local.dao.AccountDao
+import com.qrcode.scanner.data.local.dao.AccountDefaultCategoryDao
 import com.qrcode.scanner.data.local.dao.CategoryDao
 import com.qrcode.scanner.data.local.dao.ExpenseDao
+import com.qrcode.scanner.data.local.dao.FnsSessionDao
+import com.qrcode.scanner.data.local.dao.ReceiptAttachmentDao
 import com.qrcode.scanner.data.local.dao.ReceiptDao
 import com.qrcode.scanner.data.local.dao.ReceiptItemDao
 import com.qrcode.scanner.data.local.dao.ReceiptRawDao
@@ -26,7 +30,8 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "receipt_expense_db"
-        ).build()
+        ).fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides fun provideReceiptRawDao(db: AppDatabase): ReceiptRawDao = db.receiptRawDao()
@@ -34,4 +39,8 @@ object DatabaseModule {
     @Provides fun provideReceiptItemDao(db: AppDatabase): ReceiptItemDao = db.receiptItemDao()
     @Provides fun provideCategoryDao(db: AppDatabase): CategoryDao = db.categoryDao()
     @Provides fun provideExpenseDao(db: AppDatabase): ExpenseDao = db.expenseDao()
+    @Provides fun provideAccountDao(db: AppDatabase): AccountDao = db.accountDao()
+    @Provides fun provideAccountDefaultCategoryDao(db: AppDatabase): AccountDefaultCategoryDao = db.accountDefaultCategoryDao()
+    @Provides fun provideReceiptAttachmentDao(db: AppDatabase): ReceiptAttachmentDao = db.receiptAttachmentDao()
+    @Provides fun provideFnsSessionDao(db: AppDatabase): FnsSessionDao = db.fnsSessionDao()
 }

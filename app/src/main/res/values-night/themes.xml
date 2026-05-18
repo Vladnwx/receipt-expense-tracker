@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme -->
+    <!-- Dark theme -->
     <style name="Theme.QRCodeScanner" parent="Theme.Material3.DayNight">
-        <!-- Primary brand color — deep green (finance & wealth) -->
+        <!-- Primary — soft green -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryContainer">@color/primaryContainer</item>
         <item name="colorOnPrimary">@color/onPrimary</item>
-        
-        <!-- Secondary brand color — warm orange (accents) -->
+
+        <!-- Secondary — warm amber -->
         <item name="colorSecondary">@color/secondary</item>
         <item name="colorSecondaryContainer">@color/secondaryContainer</item>
         <item name="colorOnSecondary">@color/onSecondary</item>
-        
-        <!-- Tertiary — blue (info & links) -->
+
+        <!-- Tertiary — light blue -->
         <item name="colorTertiary">@color/tertiary</item>
         <item name="colorTertiaryContainer">@color/tertiaryContainer</item>
-        
-        <!-- Status bar color -->
-        <item name="android:statusBarColor">?attr/colorPrimary</item>
-        <item name="android:navigationBarColor">?attr/colorSurface</item>
-        
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+
         <!-- Background & surface -->
         <item name="android:colorBackground">@color/background</item>
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/on_surface</item>
         <item name="colorSurfaceVariant">@color/surfaceVariant</item>
-        
-        <!-- Error color -->
+
+        <!-- Error -->
         <item name="colorError">@color/error</item>
         <item name="colorOnError">@color/onError</item>
-        
+
         <!-- Outline -->
         <item name="colorOutline">@color/outline</item>
         <item name="colorOutlineVariant">@color/outlineVariant</item>
