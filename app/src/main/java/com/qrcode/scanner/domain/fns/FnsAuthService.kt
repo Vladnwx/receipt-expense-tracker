@@ -31,7 +31,7 @@ interface FnsAuthService {
         val expiresAt: Long?
     )
 
-    sealed class AuthError {
+    sealed class AuthError(cause: Throwable? = null) : Exception(cause) {
         data object InvalidCredentials : AuthError()
         data object ExpiredCode : AuthError()
         data object NetworkError : AuthError()
