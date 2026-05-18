@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/scannerFragment">
+
+    <fragment
+        android:id="@+id/scannerFragment"
+        android:name="com.qrcode.scanner.ui.scanner.ScannerFragment"
+        android:label="Сканер"
+        tools:layout="@layout/fragment_scanner">
+        <action
+            android:id="@+id/action_scanner_to_receiptDetail"
+            app:destination="@id/receiptDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/receiptListFragment"
+        android:name="com.qrcode.scanner.ui.receiptlist.ReceiptListFragment"
+        android:label="Чеки"
+        tools:layout="@layout/fragment_receipt_list">
+        <action
+            android:id="@+id/action_receiptList_to_receiptDetail"
+            app:destination="@id/receiptDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/receiptDetailFragment"
+        android:name="com.qrcode.scanner.ui.receiptdetail.ReceiptDetailFragment"
+        android:label="Детали чека"
+        tools:layout="@layout/fragment_receipt_detail">
+        <argument
+            android:name="receiptId"
+            app:argType="long" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/categoriesFragment"
+        android:name="com.qrcode.scanner.ui.categories.CategoriesFragment"
+        android:label="Категории"
+        tools:layout="@layout/fragment_categories" />
+
+    <fragment
+        android:id="@+id/expensesFragment"
+        android:name="com.qrcode.scanner.ui.expenses.ExpensesFragment"
+        android:label="Расходы"
+        tools:layout="@layout/fragment_expenses" />
+
+</navigation>

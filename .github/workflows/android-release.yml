@@ -1,113 +1,98 @@
-name: Android Release Build
+name: Publish Release
 
 on:
   push:
+    branches:
+      - main
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 permissions:
   contents: write
-  packages: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Auto-increment tag
+        id: tag_version
+        if: github.ref == 'refs/heads/main'
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          DEFAULT_BUMP: patch
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=${{ steps.tag_version.outputs.new_tag }}
+            VERSION=${VERSION#v}
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Текущая версия для сборки: $VERSION"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+      - name: Decode Keystore
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "${{ secrets.RELEASE_KEY_BASE64 }}" | base64 --decode > release-key.jks
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Get version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Decode keystore
-        id: keystore
-        env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > keystore.jks
-            echo "KEYSTORE_PATH=$(pwd)/keystore.jks" >> $GITHUB_ENV
-            echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
-            echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
-            echo "status=present" >> $GITHUB_OUTPUT
-          else
-            echo "status=missing" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
-
-      - name: Build Release APK
-        run: ./gradlew assembleRelease --no-daemon
-
-      - name: Prepare release artifacts
+      - name: Build Signed APKs
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
-          mkdir -p release-artifacts
-          cp app/build/outputs/apk/debug/app-debug.apk \
-            release-artifacts/receipt-expense-tracker-${VERSION}-debug.apk
+          echo "📦 Сборка версии: $VERSION"
+          ./gradlew assembleDebug assembleRelease --no-daemon \
+            -x lintVitalAnalyzeRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/release-key.jks \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEY_STORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
 
-          if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
-            cp app/build/outputs/apk/release/app-release.apk \
-              release-artifacts/receipt-expense-tracker-${VERSION}-release.apk
-            echo "SIGNED_RELEASE=true" >> $GITHUB_ENV
-          elif [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
-            cp app/build/outputs/apk/release/app-release-unsigned.apk \
-              release-artifacts/receipt-expense-tracker-${VERSION}-release-unsigned.apk
-          fi
+      - name: Find Artifacts
+        id: artifacts
+        run: |
+          DEBUG_APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
+          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          echo "debug_path=$DEBUG_APK" >> $GITHUB_OUTPUT
+          echo "release_path=$RELEASE_APK" >> $GITHUB_OUTPUT
+          echo "✅ Найдено: $DEBUG_APK и $RELEASE_APK"
 
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: receipt-expense-tracker-debug
-          path: release-artifacts/receipt-expense-tracker-${{ steps.get_version.outputs.VERSION }}-debug.apk
-          if-no-files-found: error
-
-      - name: Upload Signed Release APK
-        if: env.SIGNED_RELEASE == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: receipt-expense-tracker-release
-          path: release-artifacts/receipt-expense-tracker-${{ steps.get_version.outputs.VERSION }}-release.apk
-          if-no-files-found: error
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## 📦 Автоматическая сборка
+            - **Версия:** ${{ steps.get_version.outputs.VERSION }}
+            - **Коммит:** `${{ github.sha }}`
+
+            _Этот релиз создан автоматически._
           files: |
-            release-artifacts/receipt-expense-tracker-${{ steps.get_version.outputs.VERSION }}-debug.apk
-            release-artifacts/receipt-expense-tracker-${{ steps.get_version.outputs.VERSION }}-release.apk
+            ${{ steps.artifacts.outputs.debug_path }}
+            ${{ steps.artifacts.outputs.release_path }}
           generate_release_notes: true
-          draft: false
-          prerelease: ${{ steps.keystore.outputs.status == 'missing' }}
-          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload mapping file
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mapping-file
-          path: app/build/outputs/mapping/release/mapping.txt
-          if-no-files-found: ignore

@@ -1,0 +1,40 @@
+package com.qrcode.scanner.data.repository
+
+import com.qrcode.scanner.data.local.dao.ExpenseDao
+import com.qrcode.scanner.data.local.entity.ExpenseEntity
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class ExpenseRepository @Inject constructor(
+    private val expenseDao: ExpenseDao
+) {
+    suspend fun getAll(): List<ExpenseEntity> = expenseDao.getAll()
+    suspend fun getByReceiptId(receiptId: Long): List<ExpenseEntity> =
+        expenseDao.getByReceiptId(receiptId)
+    suspend fun getByCategoryId(categoryId: Long): List<ExpenseEntity> =
+        expenseDao.getByCategoryId(categoryId)
+    suspend fun getByDateRange(start: Long, end: Long): List<ExpenseEntity> =
+        expenseDao.getByDateRange(start, end)
+    suspend fun getTotalByDateRange(start: Long, end: Long): Double =
+        expenseDao.getTotalByDateRange(start, end) ?: 0.0
+    suspend fun save(entity: ExpenseEntity): Long = expenseDao.insert(entity)
+
+    suspend fun createFromReceiptItems(
+        receiptId: Long,
+        items: List<com.qrcode.scanner.data.local.entity.ReceiptItemEntity>
+    ) {
+        items.forEach { item ->
+            expenseDao.insert(
+                ExpenseEntity(
+                    receiptId = receiptId,
+                    receiptItemId = item.id,
+                    categoryId = item.categoryId,
+                    amount = item.amount,
+                    description = "[чек] ${item.name}",
+                    date = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+}

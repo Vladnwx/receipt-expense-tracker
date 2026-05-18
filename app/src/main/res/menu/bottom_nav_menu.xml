@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@id/scannerFragment"
+        android:icon="@android:drawable/ic_menu_camera"
+        android:title="@string/scanner_title" />
+    <item
+        android:id="@id/receiptListFragment"
+        android:icon="@android:drawable/ic_menu_sort_by_size"
+        android:title="@string/receipts_title" />
+    <item
+        android:id="@id/expensesFragment"
+        android:icon="@android:drawable/ic_menu_gallery"
+        android:title="@string/expenses_title" />
+    <item
+        android:id="@id/categoriesFragment"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:title="@string/categories_title" />
+</menu>

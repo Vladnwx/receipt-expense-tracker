@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">QR Code Scanner</string>
+    <string name="app_name">ReceiptExpenseTracker</string>
     <string name="result_label">Результат сканирования:</string>
-    <string name="result_placeholder">Наведите камеру на QR-код для сканирования</string>
+    <string name="result_placeholder">Наведите камеру на QR-код чека для сканирования</string>
     <string name="start_scanning">Начать сканирование</string>
     <string name="stop_scanning">Остановить</string>
     <string name="clear">Очистить</string>
@@ -11,4 +11,13 @@
     <string name="permission_required">Требуется разрешение на использование камеры</string>
     <string name="camera_error">Ошибка инициализации камеры</string>
     <string name="qr_found">QR-код найден!</string>
+    <string name="saving_receipt">Сохранение чека…</string>
+    <string name="parse_error">Ошибка при обработке чека</string>
+    <string name="scanner_title">Сканер</string>
+    <string name="receipts_title">Чеки</string>
+    <string name="expenses_title">Расходы</string>
+    <string name="categories_title">Категории</string>
+    <string name="receipt_detail_title">Детали чека</string>
+    <string name="add_category">Добавить категорию</string>
+    <string name="delete">Удалить</string>
 </resources>

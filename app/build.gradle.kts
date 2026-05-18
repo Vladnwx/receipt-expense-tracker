@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.dagger.hilt.android")
+    kotlin("kapt")
 }
 
 android {
@@ -11,8 +13,8 @@ android {
         applicationId = "com.qrcode.scanner"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("VERSION") ?: "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -42,24 +44,8 @@ android {
     
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
-}
-
-val keystorePath = System.getenv("KEYSTORE_PATH")
-val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
-val keyAlias = System.getenv("KEY_ALIAS")
-val keyPassword = System.getenv("KEY_PASSWORD")
-
-if (!keystorePath.isNullOrBlank() && !keystorePassword.isNullOrBlank() &&
-    !keyAlias.isNullOrBlank() && !keyPassword.isNullOrBlank()) {
-    android.signingConfigs.getByName("release").apply {
-        storeFile = file(keystorePath)
-        storePassword = keystorePassword
-        this.keyAlias = keyAlias
-        this.keyPassword = keyPassword
-    }
-    android.buildTypes.getByName("release").signingConfig =
-        android.signingConfigs.getByName("release")
 }
 
 dependencies {
@@ -82,7 +68,41 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.7")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.7")
+
+    // ViewModel + LiveData
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.50")
+    kapt("com.google.dagger:hilt-android-compiler:2.50")
+    implementation("androidx.hilt:hilt-navigation-fragment:1.1.0")
+
+    // Retrofit + OkHttp
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Gson
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // SwipeRefresh
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+}
+
+kapt {
+    correctErrorTypes = true
 }
