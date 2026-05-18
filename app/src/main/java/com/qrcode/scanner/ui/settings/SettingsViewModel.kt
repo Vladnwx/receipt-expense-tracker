@@ -3,7 +3,7 @@ package com.qrcode.scanner.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qrcode.scanner.data.repository.AppUpdateRepository
-import com.qrcode.scanner.data.repository.FnsAuthRepository
+import com.qrcode.scanner.domain.fns.FnsAuthService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +30,7 @@ data class SettingsUiState(
     val isMandatory: Boolean = false,
     val fnsAuthState: FnsAuthState = FnsAuthState.Loading,
     val showPhoneDialog: Boolean = false,
+    val showSending: Boolean = false,
     val showCodeDialog: Boolean = false,
     val authErrorMessage: String? = null
 )
@@ -37,11 +38,13 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val updateRepository: AppUpdateRepository,
-    private val fnsAuthRepository: FnsAuthRepository
+    private val fnsAuthService: FnsAuthService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private var pendingSessionId: String? = null
 
     init {
         checkAuthStatus()
@@ -49,7 +52,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun checkAuthStatus() {
         viewModelScope.launch {
-            val session = fnsAuthRepository.getActiveSession()
+            val session = fnsAuthService.getActiveSession()
             _uiState.value = _uiState.value.copy(
                 fnsAuthState = if (session != null) {
                     FnsAuthState.LoggedIn(phone = session.phone ?: session.sessionId)
@@ -70,10 +73,23 @@ class SettingsViewModel @Inject constructor(
 
     fun submitPhone(phone: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(showPhoneDialog = false)
-            // FnsAuthService.requestCode would be called here
-            // For now, show code dialog directly
-            _uiState.value = _uiState.value.copy(showCodeDialog = true, authErrorMessage = null)
+            _uiState.value = _uiState.value.copy(showPhoneDialog = false, showSending = true, authErrorMessage = null)
+            try {
+                val result = fnsAuthService.requestCode(phone)
+                pendingSessionId = result.sessionId
+                _uiState.value = _uiState.value.copy(showSending = false, showCodeDialog = true)
+            } catch (e: FnsAuthService.AuthError) {
+                val msg = when (e) {
+                    FnsAuthService.AuthError.NetworkError -> "Ошибка сети, проверьте подключение"
+                    else -> "Ошибка: ${e}"
+                }
+                _uiState.value = _uiState.value.copy(showSending = false, authErrorMessage = msg)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    showSending = false,
+                    authErrorMessage = "Ошибка: ${e.localizedMessage ?: "неизвестная"}"
+                )
+            }
         }
     }
 
@@ -82,23 +98,26 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun submitCode(code: String) {
+        val sessionId = pendingSessionId ?: return
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(showCodeDialog = false, showSending = true, authErrorMessage = null)
             try {
-                // FnsAuthService.confirmCode would be called here
-                // Mock: save a session to mark as logged in
-                fnsAuthRepository.saveSession(
-                    com.qrcode.scanner.data.local.entity.FnsSessionEntity(
-                        sessionId = "manual",
-                        phone = _uiState.value.let {
-                            (it.fnsAuthState as? FnsAuthState.LoggedIn)?.phone ?: "+7"
-                        }
-                    )
-                )
-                _uiState.value = _uiState.value.copy(showCodeDialog = false)
+                fnsAuthService.confirmCode(sessionId, code)
+                pendingSessionId = null
+                _uiState.value = _uiState.value.copy(showSending = false)
                 checkAuthStatus()
+            } catch (e: FnsAuthService.AuthError) {
+                val msg = when (e) {
+                    FnsAuthService.AuthError.InvalidCredentials -> "Неверный код"
+                    FnsAuthService.AuthError.ExpiredCode -> "Код истёк, запросите новый"
+                    FnsAuthService.AuthError.NetworkError -> "Ошибка сети, проверьте подключение"
+                    is FnsAuthService.AuthError.ServiceError -> e.message
+                }
+                _uiState.value = _uiState.value.copy(showSending = false, authErrorMessage = msg)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    authErrorMessage = "Ошибка авторизации: ${e.localizedMessage ?: "неизвестная"}"
+                    showSending = false,
+                    authErrorMessage = "Ошибка: ${e.localizedMessage ?: "неизвестная"}"
                 )
             }
         }
@@ -106,7 +125,7 @@ class SettingsViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            fnsAuthRepository.deactivateAll()
+            fnsAuthService.logout("")
             _uiState.value = _uiState.value.copy(fnsAuthState = FnsAuthState.NotLoggedIn)
         }
     }

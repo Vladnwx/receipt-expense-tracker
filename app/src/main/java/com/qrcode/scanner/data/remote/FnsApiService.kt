@@ -1,6 +1,9 @@
 package com.qrcode.scanner.data.remote
 
+import com.google.gson.annotations.SerializedName
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface FnsApiService {
@@ -14,7 +17,53 @@ interface FnsApiService {
         @Query("date") date: String? = null,
         @Query("sum") sum: Double? = null
     ): FnsTicketResponse
+
+    @POST("api/v1/auth/phone/request-code")
+    suspend fun requestAuthCode(
+        @Body body: FnsAuthCodeRequest
+    ): FnsAuthCodeResponse
+
+    @POST("api/v1/auth/phone/confirm-code")
+    suspend fun confirmAuthCode(
+        @Body body: FnsAuthConfirmRequest
+    ): FnsAuthConfirmResponse
 }
+
+data class FnsAuthCodeRequest(
+    val phone: String
+)
+
+data class FnsAuthConfirmRequest(
+    val phone: String,
+    val code: String
+)
+
+data class FnsAuthCodeResponse(
+    val code: Int? = null,
+    val message: String? = null,
+    val data: FnsAuthCodeData? = null
+)
+
+data class FnsAuthCodeData(
+    @SerializedName("sessionId")
+    val sessionId: String? = null,
+    @SerializedName("expiresIn")
+    val expiresIn: Long? = null
+)
+
+data class FnsAuthConfirmResponse(
+    val code: Int? = null,
+    val message: String? = null,
+    val data: FnsAuthConfirmData? = null
+)
+
+data class FnsAuthConfirmData(
+    @SerializedName("sessionId")
+    val sessionId: String? = null,
+    @SerializedName("deviceId")
+    val deviceId: String? = null,
+    val cookies: String? = null
+)
 
 data class FnsTicketResponse(
     val code: Int? = null,
