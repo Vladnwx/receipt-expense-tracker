@@ -8,8 +8,8 @@
     android:background="@color/background"
     tools:context=".ui.scanner.ScannerFragment">
 
-    <androidx.camera.view.PreviewView
-        android:id="@+id/previewView"
+    <FrameLayout
+        android:id="@+id/previewContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="16dp"
@@ -17,7 +17,44 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/resultCard" />
+        app:layout_constraintBottom_toTopOf="@id/resultCard">
+
+        <androidx.camera.view.PreviewView
+            android:id="@+id/previewView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <View
+            android:id="@+id/scannerOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/torchButton"
+            style="@style/Widget.Material3.Button.IconButton.Filled"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="start|top"
+            android:layout_margin="12dp"
+            android:contentDescription="@string/torch_off"
+            app:icon="@android:drawable/ic_menu_compass"
+            app:iconTint="@color/onPrimary"
+            app:backgroundTint="@color/primary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cameraSwitchButton"
+            style="@style/Widget.Material3.Button.IconButton.Filled"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="end|top"
+            android:layout_margin="12dp"
+            android:contentDescription="@string/switch_camera"
+            app:icon="@android:drawable/ic_menu_camera"
+            app:iconTint="@color/onPrimary"
+            app:backgroundTint="@color/primary" />
+
+    </FrameLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/resultCard"
@@ -26,10 +63,11 @@
         android:layout_margin="16dp"
         app:cardCornerRadius="12dp"
         app:cardElevation="4dp"
+        app:cardBackgroundColor="?attr/colorSurface"
         app:layout_constraintBottom_toTopOf="@id/buttonContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/previewView">
+        app:layout_constraintTop_toBottomOf="@id/previewContainer">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -43,7 +81,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/result_label"
                 android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="@color/primary"
+                android:textColor="?attr/colorPrimary"
                 android:textStyle="bold" />
 
             <TextView
@@ -53,7 +91,7 @@
                 android:layout_marginTop="8dp"
                 android:text="@string/result_placeholder"
                 android:textAppearance="?attr/textAppearanceBodyLarge"
-                android:textColor="@color/on_background"
+                android:textColor="?attr/colorOnSurface"
                 android:minLines="2"
                 android:maxLines="5"
                 android:scrollbars="vertical"

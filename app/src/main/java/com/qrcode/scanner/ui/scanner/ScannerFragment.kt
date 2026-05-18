@@ -13,19 +13,19 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.qrcode.scanner.R
 import com.qrcode.scanner.databinding.FragmentScannerBinding
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -42,7 +42,8 @@ class ScannerFragment : Fragment() {
     private val cameraExecutor: ExecutorService by lazy { Executors.newSingleThreadExecutor() }
     private val barcodeScanner = BarcodeScanning.getClient()
 
-    private var isScanning: Boolean = true
+    private var lensFacing = CameraSelector.LENS_FACING_BACK
+    private var isTorchOn = false
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -60,7 +61,6 @@ class ScannerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setupUI()
         observeEvents()
         checkPermission()
@@ -68,20 +68,83 @@ class ScannerFragment : Fragment() {
 
     private fun setupUI() {
         binding.scanButton.setOnClickListener {
-            isScanning = !isScanning
-            updateScanButton()
+            toggleCamera()
         }
         binding.clearButton.setOnClickListener {
             binding.resultText.text = getString(R.string.result_placeholder)
         }
+        binding.torchButton.setOnClickListener {
+            toggleTorch()
+        }
+        binding.cameraSwitchButton.setOnClickListener {
+            switchCamera()
+        }
+
+        binding.torchButton.isEnabled = false
+        binding.cameraSwitchButton.isEnabled = false
     }
 
-    private fun updateScanButton() {
+    private fun toggleCamera() {
+        if (cameraProvider == null) {
+            startCamera()
+            return
+        }
+        viewModel.toggleScanning()
+    }
+
+    private fun updateUiForScanningState(isScanning: Boolean) {
         binding.scanButton.text = if (isScanning) {
             getString(R.string.stop_scanning)
         } else {
             getString(R.string.start_scanning)
         }
+
+        if (isScanning) {
+            bindCamera()
+        } else {
+            unbindCamera()
+        }
+
+        binding.torchButton.isEnabled = isScanning
+        binding.cameraSwitchButton.isEnabled = isScanning
+        if (!isScanning && isTorchOn) {
+            disableTorch()
+        }
+    }
+
+    private fun toggleTorch() {
+        if (!viewModel.isScanning.value == true) return
+        if (lensFacing != CameraSelector.LENS_FACING_BACK) return
+
+        isTorchOn = !isTorchOn
+        camera?.cameraControl?.enableTorch(isTorchOn)
+        updateTorchButton()
+    }
+
+    private fun disableTorch() {
+        isTorchOn = false
+        camera?.cameraControl?.enableTorch(false)
+        updateTorchButton()
+    }
+
+    private fun updateTorchButton() {
+        binding.torchButton.contentDescription = if (isTorchOn) {
+            getString(R.string.torch_on)
+        } else {
+            getString(R.string.torch_off)
+        }
+        binding.torchButton.alpha = if (isTorchOn) 1.0f else 0.6f
+    }
+
+    private fun switchCamera() {
+        if (viewModel.isScanning.value != true) return
+        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
+        if (isTorchOn) disableTorch()
+        bindCamera()
     }
 
     private fun observeEvents() {
@@ -101,7 +164,14 @@ class ScannerFragment : Fragment() {
                 is ScannerEvent.Error -> {
                     Toast.makeText(requireContext(), R.string.parse_error, Toast.LENGTH_SHORT).show()
                 }
+                is ScannerEvent.ScanningToggled -> {
+                    updateUiForScanningState(event.isScanning)
+                }
             }
+        }
+
+        viewModel.isScanning.observe(viewLifecycleOwner) { isScanning ->
+            updateUiForScanningState(isScanning)
         }
     }
 
@@ -124,32 +194,55 @@ class ScannerFragment : Fragment() {
         cameraProviderFuture.addListener({
             try {
                 cameraProvider = cameraProviderFuture.get()
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(binding.previewView.surfaceProvider)
-                }
-                val imageAnalysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                    .also {
-                        it.setAnalyzer(cameraExecutor) { imageProxy ->
-                            processImage(imageProxy)
-                        }
-                    }
-                cameraProvider?.unbindAll()
-                camera = cameraProvider?.bindToLifecycle(
-                    this as LifecycleOwner,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview,
-                    imageAnalysis
-                )
+                bindCamera()
+                binding.torchButton.isEnabled = true
+                binding.cameraSwitchButton.isEnabled = true
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), R.string.camera_error, Toast.LENGTH_SHORT).show()
             }
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
+    private fun bindCamera() {
+        val provider = cameraProvider ?: return
+        provider.unbindAll()
+
+        val cameraSelector = CameraSelector.Builder()
+            .requireLensFacing(lensFacing)
+            .build()
+
+        val preview = Preview.Builder()
+            .build()
+            .also { it.setSurfaceProvider(binding.previewView.surfaceProvider) }
+
+        val imageAnalysis = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+            .also {
+                it.setAnalyzer(cameraExecutor) { imageProxy ->
+                    processImage(imageProxy)
+                }
+            }
+
+        try {
+            camera = provider.bindToLifecycle(
+                this as LifecycleOwner,
+                cameraSelector,
+                preview,
+                imageAnalysis
+            )
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), R.string.camera_error, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun unbindCamera() {
+        cameraProvider?.unbindAll()
+        camera = null
+    }
+
     private fun processImage(imageProxy: ImageProxy) {
-        if (!isScanning) {
+        if (viewModel.isScanning.value != true) {
             imageProxy.close()
             return
         }

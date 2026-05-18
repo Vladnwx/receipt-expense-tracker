@@ -20,4 +20,9 @@
     <string name="receipt_detail_title">Детали чека</string>
     <string name="add_category">Добавить категорию</string>
     <string name="delete">Удалить</string>
+    <string name="torch_on">Выключить фонарик</string>
+    <string name="torch_off">Включить фонарик</string>
+    <string name="switch_camera">Переключить камеру</string>
+    <string name="camera_stopped">Камера остановлена</string>
+    <string name="camera_started">Сканирование запущено</string>
 </resources>
