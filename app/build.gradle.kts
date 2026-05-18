@@ -30,8 +30,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val token = project.findProperty("githubIssuesToken") as? String ?: ""
-        buildConfigField("String", "GITHUB_ISSUES_TOKEN", "\"$token\"")
+        val githubToken = project.findProperty("githubIssuesToken") as? String ?: ""
+        val pkToken = project.findProperty("proverkachekaToken") as? String ?: ""
+        buildConfigField("String", "GITHUB_ISSUES_TOKEN", "\"$githubToken\"")
+        buildConfigField("String", "PROVERKACHEKA_TOKEN", "\"$pkToken\"")
         buildConfigField("String", "GITHUB_REPO", "\"Vladnwx/receipt-expense-tracker\"")
     }
 

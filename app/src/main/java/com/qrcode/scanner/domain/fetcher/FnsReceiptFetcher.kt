@@ -2,6 +2,7 @@ package com.qrcode.scanner.domain.fetcher
 
 import com.qrcode.scanner.data.remote.FnsApiService
 import com.qrcode.scanner.data.remote.FnsReceipt
+import com.qrcode.scanner.BuildConfig
 import com.qrcode.scanner.data.remote.ProverkachekaApi
 import com.qrcode.scanner.data.remote.ProverkachekaRequest
 import com.qrcode.scanner.data.reporter.AppLogger
@@ -62,7 +63,8 @@ class FnsReceiptFetcher @Inject constructor(
                     fp = qrData.fiscalSign,
                     n = qrData.operationType,
                     s = qrData.sum?.let { (it * 100).toLong() },
-                    t = qrData.date
+                    t = qrData.date,
+                    token = BuildConfig.PROVERKACHEKA_TOKEN.ifBlank { null }
                 )
             )
             val json = response.data?.json
