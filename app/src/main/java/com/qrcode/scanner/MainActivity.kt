@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             val options = NavOptions.Builder()
-                .setPopUpTo(navController.graph.findStartDestination().id, true)
+                .setPopUpTo(navController.graph.startDestinationId, true)
                 .setLaunchSingleTop(true)
                 .build()
             NavigationUI.onNavDestinationSelected(item, navController, options)
