@@ -22,35 +22,24 @@ class AppUpdateRepository @Inject constructor(
 ) : AppUpdateChecker {
 
     override suspend fun checkForUpdate(): AppUpdateChecker.UpdateResult {
-        return try {
-            val release = api.getLatestRelease()
-            val latestTag = release.tagName.removePrefix("v")
-            val currentVersion = BuildConfig.VERSION_NAME
+        val release = api.getLatestRelease()
+        val latestTag = release.tagName.removePrefix("v")
+        val currentVersion = BuildConfig.VERSION_NAME
 
-            val isNewer = compareVersions(latestTag, currentVersion) > 0
+        val isNewer = compareVersions(latestTag, currentVersion) > 0
 
-            val releaseApk = release.assets.firstOrNull { asset ->
-                asset.name.endsWith(".apk") && asset.name.contains("release")
-            }
-
-            AppUpdateChecker.UpdateResult(
-                isAvailable = isNewer,
-                latestVersion = latestTag,
-                currentVersion = currentVersion,
-                downloadUrl = releaseApk?.browserDownloadUrl,
-                releaseNotes = release.body,
-                isMandatory = shouldBeMandatory(currentVersion, latestTag)
-            )
-        } catch (e: Exception) {
-            AppUpdateChecker.UpdateResult(
-                isAvailable = false,
-                latestVersion = null,
-                currentVersion = BuildConfig.VERSION_NAME,
-                downloadUrl = null,
-                releaseNotes = null,
-                isMandatory = false
-            )
+        val releaseApk = release.assets.firstOrNull { asset ->
+            asset.name.endsWith(".apk") && asset.name.contains("release")
         }
+
+        return AppUpdateChecker.UpdateResult(
+            isAvailable = isNewer,
+            latestVersion = latestTag,
+            currentVersion = currentVersion,
+            downloadUrl = releaseApk?.browserDownloadUrl,
+            releaseNotes = release.body,
+            isMandatory = shouldBeMandatory(currentVersion, latestTag)
+        )
     }
 
     fun downloadApk(downloadUrl: String, fileName: String): Long {
