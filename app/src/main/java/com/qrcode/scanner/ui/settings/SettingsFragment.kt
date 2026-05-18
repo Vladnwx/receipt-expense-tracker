@@ -22,23 +22,18 @@ class SettingsFragment : Fragment() {
         return ComposeView(requireContext()).apply {
             setContent {
                 SettingsScreen(
-                    onCheckUpdate = { checkForUpdate() },
+                    viewModel = viewModel,
+                    onUpdateAvailable = { latestVersion, downloadUrl, releaseNotes, isMandatory ->
+                        val dialog = UpdateDialogFragment.newInstance(
+                            latestVersion = latestVersion,
+                            downloadUrl = downloadUrl,
+                            releaseNotes = releaseNotes,
+                            isMandatory = isMandatory
+                        )
+                        dialog.show(parentFragmentManager, UpdateDialogFragment.TAG)
+                    },
                     onBack = { findNavController().navigateUp() }
                 )
-            }
-        }
-    }
-
-    private fun checkForUpdate() {
-        viewModel.checkUpdate { result ->
-            if (result.isAvailable && !result.downloadUrl.isNullOrBlank()) {
-                val dialog = UpdateDialogFragment.newInstance(
-                    latestVersion = result.latestVersion.orEmpty(),
-                    downloadUrl = result.downloadUrl,
-                    releaseNotes = result.releaseNotes.orEmpty(),
-                    isMandatory = result.isMandatory
-                )
-                dialog.show(parentFragmentManager, UpdateDialogFragment.TAG)
             }
         }
     }

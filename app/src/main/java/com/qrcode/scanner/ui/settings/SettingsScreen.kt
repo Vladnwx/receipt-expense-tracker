@@ -23,10 +23,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -35,9 +41,33 @@ import com.qrcode.scanner.BuildConfig
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onCheckUpdate: () -> Unit,
+    viewModel: SettingsViewModel,
+    onUpdateAvailable: (latestVersion: String, downloadUrl: String, releaseNotes: String, isMandatory: Boolean) -> Unit,
     onBack: () -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.status) {
+        when (uiState.status) {
+            UpdateStatus.UpToDate, UpdateStatus.Error -> {
+                uiState.message?.let { snackbarHostState.showSnackbar(it) }
+                viewModel.consumeMessage()
+            }
+            UpdateStatus.Available -> {
+                uiState.message?.let { snackbarHostState.showSnackbar(it) }
+                onUpdateAvailable(
+                    uiState.latestVersion ?: "",
+                    uiState.downloadUrl ?: "",
+                    uiState.releaseNotes ?: "",
+                    uiState.isMandatory
+                )
+                viewModel.consumeMessage()
+            }
+            else -> {}
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -56,7 +86,8 @@ fun SettingsScreen(
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -65,7 +96,11 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            UpdateSection(onCheckUpdate = onCheckUpdate)
+            UpdateSection(
+                currentVersion = BuildConfig.VERSION_NAME,
+                isChecking = uiState.status == UpdateStatus.Checking,
+                onCheckUpdate = { viewModel.checkUpdate() }
+            )
             Spacer(modifier = Modifier.height(16.dp))
             AboutSection()
         }
@@ -73,7 +108,11 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun UpdateSection(onCheckUpdate: () -> Unit) {
+private fun UpdateSection(
+    currentVersion: String,
+    isChecking: Boolean,
+    onCheckUpdate: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -98,7 +137,7 @@ private fun UpdateSection(onCheckUpdate: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Текущая версия: ${BuildConfig.VERSION_NAME}",
+                text = "Текущая версия: $currentVersion",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -110,6 +149,7 @@ private fun UpdateSection(onCheckUpdate: () -> Unit) {
             Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = onCheckUpdate,
+                enabled = !isChecking,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
@@ -118,7 +158,7 @@ private fun UpdateSection(onCheckUpdate: () -> Unit) {
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Проверить обновления")
+                Text(if (isChecking) "Проверка…" else "Проверить обновления")
             }
         }
     }
