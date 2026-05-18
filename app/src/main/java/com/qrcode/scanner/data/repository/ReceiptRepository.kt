@@ -6,6 +6,7 @@ import com.qrcode.scanner.data.local.dao.ReceiptRawDao
 import com.qrcode.scanner.data.local.entity.ReceiptEntity
 import com.qrcode.scanner.data.local.entity.ReceiptItemEntity
 import com.qrcode.scanner.data.local.entity.ReceiptRawEntity
+import com.qrcode.scanner.data.local.entity.ReceiptStatus
 import com.qrcode.scanner.domain.fetcher.FetchResult
 import com.qrcode.scanner.domain.fetcher.FetchedReceipt
 import com.qrcode.scanner.domain.fetcher.FnsReceiptFetcher
@@ -40,49 +41,79 @@ class ReceiptRepository @Inject constructor(
         return entity.copy(id = id)
     }
 
-    suspend fun parseAndFetch(rawId: Long): ParsedReceiptResult? {
-        val raw = rawDao.getById(rawId) ?: return null
-        val qrData = parser.parse(raw.rawData) ?: return null
-        when (val result = fetcher.fetch(qrData)) {
-            is FetchResult.Unauthorized -> {
-                return ParsedReceiptResult(
-                    raw = raw,
-                    receipt = null,
-                    items = emptyList(),
-                    unauthorized = true
-                )
-            }
-            is FetchResult.NotFound, is FetchResult.Error -> {
-                return ParsedReceiptResult(raw = raw, receipt = null, items = emptyList())
-            }
-            is FetchResult.Success -> {
-                val fetched = result.receipt
-                val receipt = saveReceipt(raw.id, qrData, fetched)
-                val items = saveItems(receipt.id, fetched)
-                rawDao.markParsed(rawId)
-                return ParsedReceiptResult(raw = raw, receipt = receipt, items = items)
-            }
-        }
-    }
-
-    private suspend fun saveReceipt(
-        rawId: Long,
-        qrData: FnsQrData,
-        fetched: FetchedReceipt?
-    ): ReceiptEntity {
+    suspend fun createReceiptFromQr(rawId: Long, qrData: FnsQrData): ReceiptEntity? {
         val entity = ReceiptEntity(
             rawId = rawId,
             fiscalDriveNumber = qrData.fiscalNumber,
             fiscalDocumentNumber = qrData.fiscalDocument,
             fiscalSign = qrData.fiscalSign,
-            amount = fetched?.totalSum ?: qrData.sum ?: 0.0,
+            amount = qrData.sum ?: 0.0,
             date = parseDate(qrData.date) ?: 0L,
-            retailerName = fetched?.retailPlace,
-            retailerInn = fetched?.retailerInn,
-            operationType = qrData.operationType
+            operationType = qrData.operationType,
+            status = ReceiptStatus.Pending.name
         )
         val id = receiptDao.insert(entity)
         return entity.copy(id = id)
+    }
+
+    suspend fun fetchAndUpdate(receiptId: Long): Boolean {
+        val receipt = receiptDao.getById(receiptId) ?: return false
+        val raw = rawDao.getById(receipt.rawId) ?: return false
+        val qrData = parser.parse(raw.rawData) ?: return false
+
+        return when (val result = fetcher.fetch(qrData)) {
+            is FetchResult.Success -> {
+                val fetched = result.receipt
+                val updated = receipt.copy(
+                    amount = fetched.totalSum,
+                    date = parseDate(qrData.date) ?: receipt.date,
+                    retailerName = fetched.retailPlace,
+                    retailerInn = fetched.retailerInn,
+                    status = ReceiptStatus.Checked.name
+                )
+                receiptDao.update(updated)
+                saveItems(receiptId, fetched)
+                rawDao.markParsed(receipt.rawId)
+                true
+            }
+            is FetchResult.Unauthorized -> false
+            is FetchResult.NotFound, is FetchResult.Error -> {
+                val updated = receipt.copy(status = ReceiptStatus.Failed.name)
+                receiptDao.update(updated)
+                false
+            }
+        }
+    }
+
+    suspend fun checkUncheckedReceipts(): Int {
+        val unchecked = receiptDao.getUnchecked()
+        var checked = 0
+        for (receipt in unchecked) {
+            if (fetchAndUpdate(receipt.id)) {
+                checked++
+            }
+        }
+        return checked
+    }
+
+    suspend fun findExistingReceipt(fn: String, fd: String, fp: String): ReceiptEntity? =
+        receiptDao.findByFiscalInfo(fn, fd, fp)
+
+    suspend fun getAllReceipts(): List<ReceiptEntity> = receiptDao.getAll()
+
+    suspend fun getReceiptById(id: Long): ReceiptEntity? = receiptDao.getById(id)
+
+    suspend fun getItemsByReceiptId(receiptId: Long): List<ReceiptItemEntity> =
+        itemDao.getByReceiptId(receiptId)
+
+    suspend fun getRawById(id: Long): ReceiptRawEntity? = rawDao.getById(id)
+
+    suspend fun getAllRaws(): List<ReceiptRawEntity> = rawDao.getAll()
+
+    suspend fun getUncheckedReceipts(): List<ReceiptEntity> = receiptDao.getUnchecked()
+
+    suspend fun deleteReceipt(receipt: ReceiptEntity) {
+        itemDao.getByReceiptId(receipt.id).forEach { itemDao.updateCategory(it.id, null) }
     }
 
     private suspend fun saveItems(
@@ -101,20 +132,6 @@ class ReceiptRepository @Inject constructor(
         itemDao.insertAll(entities)
         return entities
     }
-
-    suspend fun findExistingReceipt(fn: String, fd: String, fp: String): ReceiptEntity? =
-        receiptDao.findByFiscalInfo(fn, fd, fp)
-
-    suspend fun getAllReceipts(): List<ReceiptEntity> = receiptDao.getAll()
-
-    suspend fun getReceiptById(id: Long): ReceiptEntity? = receiptDao.getById(id)
-
-    suspend fun getItemsByReceiptId(receiptId: Long): List<ReceiptItemEntity> =
-        itemDao.getByReceiptId(receiptId)
-
-    suspend fun getRawById(id: Long): ReceiptRawEntity? = rawDao.getById(id)
-
-    suspend fun getAllRaws(): List<ReceiptRawEntity> = rawDao.getAll()
 
     private fun parseDate(dateTime: String?): Long? {
         if (dateTime == null) return null

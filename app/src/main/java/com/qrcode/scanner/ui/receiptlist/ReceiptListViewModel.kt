@@ -21,6 +21,12 @@ class ReceiptListViewModel @Inject constructor(
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
 
+    private val _isChecking = MutableLiveData(false)
+    val isChecking: LiveData<Boolean> = _isChecking
+
+    private val _checkResult = MutableLiveData<String?>(null)
+    val checkResult: LiveData<String?> = _checkResult
+
     init {
         load()
     }
@@ -31,5 +37,20 @@ class ReceiptListViewModel @Inject constructor(
             _receipts.value = receiptRepository.getAllReceipts()
             _isLoading.value = false
         }
+    }
+
+    fun checkReceipts() {
+        viewModelScope.launch {
+            _isChecking.value = true
+            _checkResult.value = null
+            val checked = receiptRepository.checkUncheckedReceipts()
+            _receipts.value = receiptRepository.getAllReceipts()
+            _isChecking.value = false
+            _checkResult.value = "Проверено: $checked"
+        }
+    }
+
+    fun consumeCheckResult() {
+        _checkResult.value = null
     }
 }

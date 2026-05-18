@@ -2,6 +2,7 @@ package com.qrcode.scanner.ui.receiptlist
 
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
@@ -10,8 +11,10 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.Snackbar
 import com.qrcode.scanner.R
 import com.qrcode.scanner.data.local.entity.ReceiptEntity
+import com.qrcode.scanner.data.local.entity.ReceiptStatus
 import com.qrcode.scanner.databinding.FragmentReceiptListBinding
 import com.qrcode.scanner.databinding.ItemReceiptBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -43,8 +46,25 @@ class ReceiptListFragment : Fragment() {
 
         binding.swipeRefresh.setOnRefreshListener { viewModel.load() }
 
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            if (item.itemId == R.id.action_check_receipts) {
+                viewModel.checkReceipts()
+                true
+            } else false
+        }
+
         viewModel.receipts.observe(viewLifecycleOwner) { adapter.submitList(it) }
         viewModel.isLoading.observe(viewLifecycleOwner) { binding.swipeRefresh.isRefreshing = it }
+        viewModel.isChecking.observe(viewLifecycleOwner) { checking ->
+            val menuItem = binding.toolbar.menu.findItem(R.id.action_check_receipts)
+            menuItem?.isEnabled = !checking
+        }
+        viewModel.checkResult.observe(viewLifecycleOwner) { msg ->
+            if (msg != null) {
+                Snackbar.make(binding.root, msg, Snackbar.LENGTH_SHORT).show()
+                viewModel.consumeCheckResult()
+            }
+        }
     }
 
     override fun onDestroyView() {
@@ -77,6 +97,14 @@ class ReceiptAdapter(
             binding.amount.text = String.format("%.2f ₽", item.amount)
             binding.date.text = dateFormat.format(Date(item.date))
             binding.fiscalInfo.text = "ФН: ${item.fiscalDriveNumber}"
+            val statusText = when (item.status) {
+                ReceiptStatus.Pending.name -> "Ожидает проверки"
+                ReceiptStatus.Checked.name -> "Проверен"
+                ReceiptStatus.Failed.name -> "Ошибка проверки"
+                else -> ""
+            }
+            binding.status.text = statusText
+            binding.status.visibility = if (statusText.isEmpty()) View.GONE else View.VISIBLE
             binding.root.setOnClickListener { onClick(item) }
         }
     }

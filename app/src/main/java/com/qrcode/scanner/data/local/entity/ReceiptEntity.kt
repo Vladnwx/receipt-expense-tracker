@@ -5,6 +5,12 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+enum class ReceiptStatus {
+    Pending,
+    Checked,
+    Failed
+}
+
 @Entity(
     tableName = "receipts",
     foreignKeys = [
@@ -28,5 +34,6 @@ data class ReceiptEntity(
     val date: Long = 0,
     val retailerName: String? = null,
     val retailerInn: String? = null,
-    val operationType: Int = 1
+    val operationType: Int = 1,
+    val status: String = ReceiptStatus.Pending.name
 )
