@@ -1,10 +1,15 @@
 package com.qrcode.scanner.ui.settings
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.data.repository.AppUpdateRepository
 import com.qrcode.scanner.domain.fns.FnsAuthService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,11 +37,14 @@ data class SettingsUiState(
     val showPhoneDialog: Boolean = false,
     val showSending: Boolean = false,
     val showCodeDialog: Boolean = false,
-    val authErrorMessage: String? = null
+    val authErrorMessage: String? = null,
+    val logCopied: Boolean = false,
+    val logCleared: Boolean = false
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val updateRepository: AppUpdateRepository,
     private val fnsAuthService: FnsAuthService
 ) : ViewModel() {
@@ -172,6 +180,26 @@ class SettingsViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun copyLog() {
+        val logText = AppLogger.getLogText()
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("App Log", logText))
+        _uiState.value = _uiState.value.copy(logCopied = true)
+    }
+
+    fun consumeLogCopied() {
+        _uiState.value = _uiState.value.copy(logCopied = false)
+    }
+
+    fun clearLog() {
+        AppLogger.clearLog()
+        _uiState.value = _uiState.value.copy(logCleared = true)
+    }
+
+    fun consumeLogCleared() {
+        _uiState.value = _uiState.value.copy(logCleared = false)
     }
 
     fun consumeMessage() {

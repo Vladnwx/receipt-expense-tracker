@@ -29,6 +29,7 @@ object GitHubIssueReporter {
         details: String,
         throwable: Throwable? = null
     ) {
+        AppLogger.e("GitHubIssueReporter", "$title: $details", throwable)
         val token = BuildConfig.GITHUB_ISSUES_TOKEN
         if (token.isBlank()) {
             Log.w(TAG, "GITHUB_ISSUES_TOKEN not configured, skipping issue report")

@@ -15,6 +15,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
@@ -88,6 +90,20 @@ fun SettingsScreen(
         }
     }
 
+    LaunchedEffect(uiState.logCopied) {
+        if (uiState.logCopied) {
+            snackbarHostState.showSnackbar("Лог скопирован в буфер обмена")
+            viewModel.consumeLogCopied()
+        }
+    }
+
+    LaunchedEffect(uiState.logCleared) {
+        if (uiState.logCleared) {
+            snackbarHostState.showSnackbar("Лог очищен")
+            viewModel.consumeLogCleared()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -128,6 +144,13 @@ fun SettingsScreen(
                 currentVersion = BuildConfig.VERSION_NAME,
                 isChecking = uiState.status == UpdateStatus.Checking,
                 onCheckUpdate = { viewModel.checkUpdate() }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LogSection(
+                onCopyLog = { viewModel.copyLog() },
+                onClearLog = { viewModel.clearLog() }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -378,6 +401,62 @@ private fun UpdateSection(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(if (isChecking) "Проверка…" else "Проверить обновления")
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogSection(
+    onCopyLog: () -> Unit,
+    onClearLog: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.ContentCopy,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Логирование",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Лог приложения для отладки",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onCopyLog,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Скопировать лог")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onClearLog,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Очистить лог")
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.qrcode.scanner
 
 import android.app.Application
+import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.data.reporter.GitHubIssueReporter
 import dagger.hilt.android.HiltAndroidApp
 
@@ -14,6 +15,7 @@ class ReceiptExpenseApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        AppLogger.init(this)
 
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             GitHubIssueReporter.reportError(
