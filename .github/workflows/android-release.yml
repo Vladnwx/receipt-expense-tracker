@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions:
@@ -20,26 +18,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Auto-increment tag
-        id: tag_version
-        if: github.ref == 'refs/heads/main'
-        uses: anothrNick/github-tag-action@1.64.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: true
-          DEFAULT_BUMP: patch
-
-      - name: Get version
-        id: get_version
+      - name: Get version from commit count
+        id: version
         run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/v}
-          else
-            VERSION=${{ steps.tag_version.outputs.new_tag }}
-            VERSION=${VERSION#v}
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Текущая версия для сборки: $VERSION"
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          echo "VERSION=1.${COMMIT_COUNT}.0" >> "$GITHUB_OUTPUT"
+          echo "VERSION_CODE=${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "📦 Версия: 1.${COMMIT_COUNT}.0 (code: ${COMMIT_COUNT})"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -53,22 +38,22 @@ jobs:
         run: |
           if [ -n "${{ secrets.RELEASE_KEY_BASE64 }}" ]; then
             echo "${{ secrets.RELEASE_KEY_BASE64 }}" | base64 --decode > release-key.jks
-            echo "keystore_path=$(pwd)/release-key.jks" >> $GITHUB_OUTPUT
-            echo "keystore_password=${{ secrets.KEY_STORE_PASSWORD }}" >> $GITHUB_OUTPUT
-            echo "key_alias=${{ secrets.KEY_ALIAS }}" >> $GITHUB_OUTPUT
-            echo "key_password=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_OUTPUT
-            echo "status=signed" >> $GITHUB_OUTPUT
+            echo "keystore_path=$(pwd)/release-key.jks" >> "$GITHUB_OUTPUT"
+            echo "keystore_password=${{ secrets.KEY_STORE_PASSWORD }}" >> "$GITHUB_OUTPUT"
+            echo "key_alias=${{ secrets.KEY_ALIAS }}" >> "$GITHUB_OUTPUT"
+            echo "key_password=${{ secrets.KEY_PASSWORD }}" >> "$GITHUB_OUTPUT"
+            echo "status=signed" >> "$GITHUB_OUTPUT"
           else
             echo "🔑 Secrets not found, generating temporary dev keystore"
             keytool -genkey -v -keystore release-key.jks \
               -storepass android -alias android -keypass android \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -dname "CN=Dev, OU=Dev, O=Dev, L=Dev, S=Dev, C=US"
-            echo "keystore_path=$(pwd)/release-key.jks" >> $GITHUB_OUTPUT
-            echo "keystore_password=android" >> $GITHUB_OUTPUT
-            echo "key_alias=android" >> $GITHUB_OUTPUT
-            echo "key_password=android" >> $GITHUB_OUTPUT
-            echo "status=dev" >> $GITHUB_OUTPUT
+            echo "keystore_path=$(pwd)/release-key.jks" >> "$GITHUB_OUTPUT"
+            echo "keystore_password=android" >> "$GITHUB_OUTPUT"
+            echo "key_alias=android" >> "$GITHUB_OUTPUT"
+            echo "key_password=android" >> "$GITHUB_OUTPUT"
+            echo "status=dev" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Grant execute permission for gradlew
@@ -78,12 +63,9 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
-          VERSION: ${{ steps.get_version.outputs.VERSION }}
 
       - name: Build Release APK
         run: |
-          VERSION=${{ steps.get_version.outputs.VERSION }}
-          echo "📦 Сборка версии: $VERSION"
           ./gradlew assembleRelease --no-daemon \
             -x lintVitalAnalyzeRelease \
             -Pandroid.injected.signing.store.file=${{ steps.keystore.outputs.keystore_path }} \
@@ -92,40 +74,36 @@ jobs:
             -Pandroid.injected.signing.key.password=${{ steps.keystore.outputs.key_password }}
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
-          VERSION: ${{ steps.get_version.outputs.VERSION }}
 
       - name: Prepare Artifacts
-        id: prepare_artifacts
         run: |
-          VERSION=${{ steps.get_version.outputs.VERSION }}
+          VERSION=${{ steps.version.outputs.VERSION }}
           mkdir -p release-artifacts
 
-          DEBUG_APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
-          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          cp app/build/outputs/apk/debug/app-debug.apk \
+            "release-artifacts/receipt-expense-tracker-${VERSION}-debug.apk"
+          cp app/build/outputs/apk/release/app-release-unsigned.apk \
+            "release-artifacts/receipt-expense-tracker-${VERSION}-release.apk" || true
+          cp app/build/outputs/apk/release/app-release.apk \
+            "release-artifacts/receipt-expense-tracker-${VERSION}-release.apk" 2>/dev/null || true
 
-          cp "$DEBUG_APK" "release-artifacts/receipt-expense-tracker-${VERSION}-debug.apk"
-          echo "debug_path=release-artifacts/receipt-expense-tracker-${VERSION}-debug.apk" >> $GITHUB_OUTPUT
-
-          cp "$RELEASE_APK" "release-artifacts/receipt-expense-tracker-${VERSION}-release.apk"
-          echo "release_path=release-artifacts/receipt-expense-tracker-${VERSION}-release.apk" >> $GITHUB_OUTPUT
-
+          ls -la release-artifacts/
           echo "✅ APK подготовлены"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.get_version.outputs.VERSION }}
-          name: Release v${{ steps.get_version.outputs.VERSION }}
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: Release v${{ steps.version.outputs.VERSION }}
           body: |
             ## 📦 Автоматическая сборка
-            - **Версия:** ${{ steps.get_version.outputs.VERSION }}
+            - **Версия:** ${{ steps.version.outputs.VERSION }}
             - **Коммит:** `${{ github.sha }}`
 
             _Этот релиз создан автоматически._
-          files: |
-            ${{ steps.prepare_artifacts.outputs.debug_path }}
-            ${{ steps.prepare_artifacts.outputs.release_path }}
+          files: release-artifacts/*
           generate_release_notes: true
           make_latest: true
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
