@@ -6,6 +6,7 @@ import com.qrcode.scanner.data.local.dao.ReceiptRawDao
 import com.qrcode.scanner.data.local.entity.ReceiptEntity
 import com.qrcode.scanner.data.local.entity.ReceiptItemEntity
 import com.qrcode.scanner.data.local.entity.ReceiptRawEntity
+import com.qrcode.scanner.domain.fetcher.FetchResult
 import com.qrcode.scanner.domain.fetcher.FetchedReceipt
 import com.qrcode.scanner.domain.fetcher.FnsReceiptFetcher
 import com.qrcode.scanner.domain.parser.FnsReceiptParser
@@ -16,7 +17,8 @@ import javax.inject.Singleton
 data class ParsedReceiptResult(
     val raw: ReceiptRawEntity,
     val receipt: ReceiptEntity?,
-    val items: List<ReceiptItemEntity>
+    val items: List<ReceiptItemEntity>,
+    val unauthorized: Boolean = false
 )
 
 @Singleton
@@ -41,16 +43,26 @@ class ReceiptRepository @Inject constructor(
     suspend fun parseAndFetch(rawId: Long): ParsedReceiptResult? {
         val raw = rawDao.getById(rawId) ?: return null
         val qrData = parser.parse(raw.rawData) ?: return null
-        val fetched = fetcher.fetch(qrData)
-        val receipt = saveReceipt(raw.id, qrData, fetched)
-        val items = fetched?.let { saveItems(receipt.id, it) } ?: emptyList()
-        rawDao.markParsed(rawId)
-
-        return ParsedReceiptResult(
-            raw = raw,
-            receipt = receipt,
-            items = items
-        )
+        when (val result = fetcher.fetch(qrData)) {
+            is FetchResult.Unauthorized -> {
+                return ParsedReceiptResult(
+                    raw = raw,
+                    receipt = null,
+                    items = emptyList(),
+                    unauthorized = true
+                )
+            }
+            is FetchResult.NotFound, is FetchResult.Error -> {
+                return ParsedReceiptResult(raw = raw, receipt = null, items = emptyList())
+            }
+            is FetchResult.Success -> {
+                val fetched = result.receipt
+                val receipt = saveReceipt(raw.id, qrData, fetched)
+                val items = saveItems(receipt.id, fetched)
+                rawDao.markParsed(rawId)
+                return ParsedReceiptResult(raw = raw, receipt = receipt, items = items)
+            }
+        }
     }
 
     private suspend fun saveReceipt(

@@ -85,11 +85,23 @@ class FnsAuthServiceImpl @Inject constructor(
     }
 
     override suspend fun login(login: String, password: String): FnsAuthService.AuthSession {
-        throw UnsupportedOperationException("Login/password auth not implemented")
+        throw UnsupportedOperationException("Вход по логину/паролю не поддерживается")
     }
 
     override suspend fun refreshSession(sessionId: String): FnsAuthService.AuthSession {
-        throw UnsupportedOperationException("Session refresh not implemented")
+        val entity = authRepository.getActiveSession()
+        if (entity != null && entity.expiresAt != null && System.currentTimeMillis() < entity.expiresAt) {
+            return FnsAuthService.AuthSession(
+                sessionId = entity.sessionId,
+                cookies = entity.cookies,
+                deviceId = entity.deviceId,
+                phone = entity.phone,
+                createdAt = entity.createdAt,
+                expiresAt = entity.expiresAt
+            )
+        }
+        authRepository.deactivateAll()
+        throw FnsAuthService.AuthError.ServiceError("Сессия истекла, войдите заново")
     }
 
     override suspend fun logout(sessionId: String) {
@@ -98,6 +110,10 @@ class FnsAuthServiceImpl @Inject constructor(
 
     override suspend fun getActiveSession(): FnsAuthService.AuthSession? {
         val entity = authRepository.getActiveSession() ?: return null
+        if (entity.expiresAt != null && System.currentTimeMillis() >= entity.expiresAt) {
+            authRepository.deactivate(entity.id)
+            return null
+        }
         return FnsAuthService.AuthSession(
             sessionId = entity.sessionId,
             cookies = entity.cookies,
@@ -109,7 +125,7 @@ class FnsAuthServiceImpl @Inject constructor(
     }
 
     override suspend fun isAuthenticated(): Boolean {
-        return authRepository.isLoggedIn()
+        return getActiveSession() != null
     }
 
     private fun maskPhone(phone: String): String {

@@ -125,7 +125,8 @@ class SettingsViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            fnsAuthService.logout("")
+            val session = fnsAuthService.getActiveSession()
+            fnsAuthService.logout(session?.sessionId ?: "")
             _uiState.value = _uiState.value.copy(fnsAuthState = FnsAuthState.NotLoggedIn)
         }
     }

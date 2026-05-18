@@ -68,6 +68,10 @@ class ScannerViewModel @Inject constructor(
                 val result = receiptRepository.parseAndFetch(raw.id)
                 if (result?.receipt != null) {
                     _event.value = Event(ScannerEvent.Parsed(result.receipt.id))
+                } else if (result?.unauthorized == true) {
+                    _event.value = Event(
+                        ScannerEvent.Error("Требуется авторизация ФНС: войдите в настройках")
+                    )
                 } else {
                     _event.value = Event(ScannerEvent.Error("Не удалось получить данные чека"))
                 }

@@ -2,9 +2,17 @@ package com.qrcode.scanner.domain.fetcher
 
 import com.qrcode.scanner.data.remote.FnsApiService
 import com.qrcode.scanner.data.remote.FnsReceipt
+import com.qrcode.scanner.domain.fns.FnsAuthService
 import com.qrcode.scanner.domain.parser.FnsQrData
 import javax.inject.Inject
 import javax.inject.Singleton
+
+sealed class FetchResult {
+    data class Success(val receipt: FetchedReceipt) : FetchResult()
+    data object Unauthorized : FetchResult()
+    data object NotFound : FetchResult()
+    data class Error(val message: String) : FetchResult()
+}
 
 data class FetchedReceipt(
     val items: List<FetchedItem>,
@@ -24,12 +32,15 @@ data class FetchedItem(
 
 @Singleton
 class FnsReceiptFetcher @Inject constructor(
-    private val apiService: FnsApiService
+    private val apiService: FnsApiService,
+    private val fnsAuthService: FnsAuthService
 ) {
 
-    suspend fun fetch(qrData: FnsQrData): FetchedReceipt? {
+    suspend fun fetch(qrData: FnsQrData): FetchResult {
         return try {
+            val cookies = fnsAuthService.getActiveSession()?.cookies
             val response = apiService.getTicketInfo(
+                cookies = cookies,
                 fiscalNumber = qrData.fiscalNumber,
                 fiscalDocument = qrData.fiscalDocument,
                 fiscalSign = qrData.fiscalSign,
@@ -39,13 +50,16 @@ class FnsReceiptFetcher @Inject constructor(
             )
 
             if (response.code != null && response.code != 0) {
-                return null
+                return FetchResult.NotFound
             }
 
-            val receipt = response.data?.ticket?.document?.receipt ?: return null
-            mapToFetched(receipt)
+            val receipt = response.data?.ticket?.document?.receipt
+                ?: return FetchResult.NotFound
+            FetchResult.Success(mapToFetched(receipt))
+        } catch (e: FnsAuthService.AuthError) {
+            FetchResult.Unauthorized
         } catch (e: Exception) {
-            null
+            FetchResult.Error(e.localizedMessage ?: "Неизвестная ошибка")
         }
     }
 

@@ -3,6 +3,7 @@ package com.qrcode.scanner.data.remote
 import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
 
@@ -10,6 +11,7 @@ interface FnsApiService {
 
     @GET("api/v1/ticket")
     suspend fun getTicketInfo(
+        @Header("Cookie") cookies: String? = null,
         @Query("fn") fiscalNumber: String,
         @Query("i") fiscalDocument: String,
         @Query("fp") fiscalSign: String,
