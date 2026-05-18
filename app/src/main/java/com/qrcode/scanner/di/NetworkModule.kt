@@ -1,6 +1,7 @@
 package com.qrcode.scanner.di
 
 import com.qrcode.scanner.data.remote.FnsApiService
+import com.qrcode.scanner.data.remote.GitHubReleaseApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,5 +44,22 @@ object NetworkModule {
     @Singleton
     fun provideFnsApiService(retrofit: Retrofit): FnsApiService {
         return retrofit.create(FnsApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    @GitHubApi
+    fun provideGitHubRetrofit(client: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://api.github.com/")
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideGitHubReleaseApi(@GitHubApi retrofit: Retrofit): GitHubReleaseApi {
+        return retrofit.create(GitHubReleaseApi::class.java)
     }
 }

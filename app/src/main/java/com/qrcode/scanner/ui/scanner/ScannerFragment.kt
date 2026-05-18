@@ -162,9 +162,6 @@ class ScannerFragment : Fragment() {
                 is ScannerEvent.Error -> {
                     Toast.makeText(requireContext(), R.string.parse_error, Toast.LENGTH_SHORT).show()
                 }
-                is ScannerEvent.ScanningToggled -> {
-                    updateUiForScanningState(event.isScanning)
-                }
             }
         }
 

@@ -9,6 +9,14 @@
     <!-- Internet permission for ML Kit (may be needed for some features) -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Request install permission for APK auto-update -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    
+    <!-- Download manager for update APK -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"
+        tools:ignore="ScopedStorage" />
+
     <application
         android:name=".ReceiptExpenseApp"
         android:allowBackup="true"
@@ -17,8 +25,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.QRCodeScanner"
+        android:requestLegacyExternalStorage="true"
         tools:targetApi="34">
         
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

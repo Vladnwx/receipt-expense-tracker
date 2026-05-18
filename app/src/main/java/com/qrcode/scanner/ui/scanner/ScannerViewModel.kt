@@ -12,7 +12,6 @@ import javax.inject.Inject
 sealed class ScannerEvent {
     data class QrFound(val rawData: String) : ScannerEvent()
     data class Parsed(val receiptId: Long) : ScannerEvent()
-    data class ScanningToggled(val isScanning: Boolean) : ScannerEvent()
     object Saving : ScannerEvent()
     object Error : ScannerEvent()
 }
@@ -52,8 +51,6 @@ class ScannerViewModel @Inject constructor(
     }
 
     fun toggleScanning() {
-        val newState = _isScanning.value != true
-        _isScanning.value = newState
-        _event.value = ScannerEvent.ScanningToggled(newState)
+        _isScanning.value = _isScanning.value != true
     }
 }

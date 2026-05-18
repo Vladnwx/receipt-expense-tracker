@@ -25,4 +25,12 @@
     <string name="switch_camera">Переключить камеру</string>
     <string name="camera_stopped">Камера остановлена</string>
     <string name="camera_started">Сканирование запущено</string>
+    <string name="update_available_title">Доступно обновление</string>
+    <string name="update_required_title">Требуется обновление</string>
+    <string name="update_now">Обновить сейчас</string>
+    <string name="update_downloading">Скачивание…</string>
+    <string name="skip_version">Пропустить эту версию</string>
+    <string name="version_label">Версия %s</string>
+    <string name="whats_new">Что нового</string>
+    <string name="update_no_notes">Нет описания изменений</string>
 </resources>

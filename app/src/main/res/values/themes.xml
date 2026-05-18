@@ -34,4 +34,20 @@
         <item name="colorOutline">@color/outline</item>
         <item name="colorOutlineVariant">@color/outlineVariant</item>
     </style>
+
+    <!-- Dialog theme for update dialog (full-screen dialog style) -->
+    <style name="Theme.QRCodeScanner.Dialog" parent="Theme.Material3.DayNight.Dialog">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/onPrimary</item>
+        <item name="colorPrimaryContainer">@color/primaryContainer</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="colorError">@color/error</item>
+        <item name="android:windowMinWidthMajor">90%</item>
+        <item name="android:windowMinWidthMinor">90%</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@color/primary</item>
+    </style>
 </resources>
