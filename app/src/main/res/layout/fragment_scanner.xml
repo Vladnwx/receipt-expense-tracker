@@ -31,29 +31,10 @@
             android:background="@android:color/black"
             android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/torchButton"
-            style="@style/Widget.Material3.Button.IconButton.Filled"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="start|top"
-            android:layout_margin="12dp"
-            android:contentDescription="@string/torch_off"
-            app:icon="@drawable/ic_flashlight"
-            app:iconTint="@color/onPrimary"
-            app:backgroundTint="@color/primary" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/cameraSwitchButton"
-            style="@style/Widget.Material3.Button.IconButton.Filled"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="end|top"
-            android:layout_margin="12dp"
-            android:contentDescription="@string/switch_camera"
-            app:icon="@drawable/ic_switch_camera"
-            app:iconTint="@color/onPrimary"
-            app:backgroundTint="@color/primary" />
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/scannerControlsComposeView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
     </FrameLayout>
 

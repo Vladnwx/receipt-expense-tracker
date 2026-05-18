@@ -17,6 +17,7 @@
     <string name="receipts_title">Чеки</string>
     <string name="expenses_title">Расходы</string>
     <string name="categories_title">Категории</string>
+    <string name="operations_title">Операции</string>
     <string name="receipt_detail_title">Детали чека</string>
     <string name="add_category">Добавить категорию</string>
     <string name="delete">Удалить</string>
@@ -44,4 +45,5 @@
     <string name="no_date">—</string>
     <string name="error_format_not_recognized">Формат QR-кода не распознан</string>
     <string name="error_fetch_failed">Не удалось получить данные чека</string>
+    <string name="settings_title">Настройки</string>
 </resources>

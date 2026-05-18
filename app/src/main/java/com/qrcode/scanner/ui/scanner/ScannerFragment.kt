@@ -14,6 +14,11 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -73,6 +78,8 @@ class ScannerFragment : Fragment() {
         checkPermission()
     }
 
+    private var composeTorchOn by mutableStateOf(false)
+
     private fun setupUI() {
         binding.scanButton.setOnClickListener { toggleCamera() }
         binding.clearButton.setOnClickListener {
@@ -81,11 +88,17 @@ class ScannerFragment : Fragment() {
         binding.galleryButton.setOnClickListener {
             pickImageLauncher.launch("image/*")
         }
-        binding.torchButton.setOnClickListener { toggleTorch() }
-        binding.cameraSwitchButton.setOnClickListener { switchCamera() }
 
-        binding.torchButton.isEnabled = false
-        binding.cameraSwitchButton.isEnabled = false
+        binding.scannerControlsComposeView.apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                ScannerControls(
+                    isTorchOn = composeTorchOn,
+                    onTorchClick = { toggleTorch() },
+                    onCameraSwitchClick = { switchCamera() }
+                )
+            }
+        }
     }
 
     private fun toggleCamera() {
@@ -111,8 +124,6 @@ class ScannerFragment : Fragment() {
             hidePreview()
         }
 
-        binding.torchButton.isEnabled = isScanning
-        binding.cameraSwitchButton.isEnabled = isScanning
         if (!isScanning && isTorchOn) {
             disableTorch()
         }
@@ -134,17 +145,13 @@ class ScannerFragment : Fragment() {
 
         isTorchOn = !isTorchOn
         camera?.cameraControl?.enableTorch(isTorchOn)
-        updateTorchButton()
+        composeTorchOn = isTorchOn
     }
 
     private fun disableTorch() {
         isTorchOn = false
         camera?.cameraControl?.enableTorch(false)
-        updateTorchButton()
-    }
-
-    private fun updateTorchButton() {
-        binding.torchButton.alpha = if (isTorchOn) 1.0f else 0.6f
+        composeTorchOn = false
     }
 
     private fun switchCamera() {
@@ -213,8 +220,6 @@ class ScannerFragment : Fragment() {
             try {
                 cameraProvider = cameraProviderFuture.get()
                 bindCamera()
-                binding.torchButton.isEnabled = true
-                binding.cameraSwitchButton.isEnabled = true
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), R.string.camera_error, Toast.LENGTH_SHORT).show()
             }
