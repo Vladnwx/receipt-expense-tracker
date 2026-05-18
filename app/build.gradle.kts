@@ -18,12 +18,7 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
-        }
+        create("release")
     }
 
     buildTypes {
@@ -33,7 +28,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
         }
     }
     
@@ -49,6 +43,23 @@ android {
     buildFeatures {
         viewBinding = true
     }
+}
+
+val keystorePath = System.getenv("KEYSTORE_PATH")
+val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
+val keyAlias = System.getenv("KEY_ALIAS")
+val keyPassword = System.getenv("KEY_PASSWORD")
+
+if (!keystorePath.isNullOrBlank() && !keystorePassword.isNullOrBlank() &&
+    !keyAlias.isNullOrBlank() && !keyPassword.isNullOrBlank()) {
+    android.signingConfigs.getByName("release").apply {
+        storeFile = file(keystorePath)
+        storePassword = keystorePassword
+        this.keyAlias = keyAlias
+        this.keyPassword = keyPassword
+    }
+    android.buildTypes.getByName("release").signingConfig =
+        android.signingConfigs.getByName("release")
 }
 
 dependencies {
