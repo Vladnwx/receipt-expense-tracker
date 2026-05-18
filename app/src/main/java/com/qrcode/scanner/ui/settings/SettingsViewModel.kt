@@ -115,21 +115,34 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(status = UpdateStatus.Checking, message = "Проверка обновлений…")
             try {
+                val apiUrl = "https://api.github.com/repos/Vladnwx/receipt-expense-tracker/releases/latest"
                 val info = updateRepository.checkForUpdate()
+                val current = info.currentVersion ?: "неизвестно"
+                val latest = info.latestVersion ?: "неизвестно"
+                val detailMsg = buildString {
+                    append("Текущая: $current, последняя: $latest")
+                    if (info.isAvailable && !info.downloadUrl.isNullOrBlank()) {
+                        append(" — ДА, обновление доступно!")
+                    } else if (info.isAvailable) {
+                        append(" — версия новее, но APK не найден в релизе")
+                    } else {
+                        append(" — версия актуальна")
+                    }
+                    append("\nРелиз: $apiUrl")
+                }
                 if (info.isAvailable && !info.downloadUrl.isNullOrBlank()) {
                     _uiState.value = _uiState.value.copy(
                         status = UpdateStatus.Available,
-                        message = "Доступна версия ${info.latestVersion}",
+                        message = detailMsg,
                         latestVersion = info.latestVersion,
                         downloadUrl = info.downloadUrl,
                         releaseNotes = info.releaseNotes,
                         isMandatory = info.isMandatory
                     )
                 } else {
-                    val current = info.currentVersion ?: "неизвестно"
                     _uiState.value = _uiState.value.copy(
                         status = UpdateStatus.UpToDate,
-                        message = "У вас актуальная версия $current"
+                        message = detailMsg
                     )
                 }
             } catch (e: Exception) {
