@@ -29,6 +29,10 @@ android {
         versionName = "1.${commitCount}.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val token = project.findProperty("githubIssuesToken") as? String ?: ""
+        buildConfigField("String", "GITHUB_ISSUES_TOKEN", "\"$token\"")
+        buildConfigField("String", "GITHUB_REPO", "\"Vladnwx/receipt-expense-tracker\"")
     }
 
     signingConfigs {

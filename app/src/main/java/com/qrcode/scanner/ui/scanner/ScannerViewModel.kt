@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.qrcode.scanner.ReceiptExpenseApp
+import com.qrcode.scanner.data.reporter.GitHubIssueReporter
 import com.qrcode.scanner.data.repository.ReceiptRepository
 import com.qrcode.scanner.domain.parser.FnsReceiptParser
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -76,6 +77,7 @@ class ScannerViewModel @Inject constructor(
                 _isScanning.value = false
                 _event.value = Event(ScannerEvent.Parsed(receipt.id))
             } catch (e: Exception) {
+                GitHubIssueReporter.reportError("Scan error", "Ошибка при сканировании QR", e)
                 _event.value = Event(ScannerEvent.Error("Ошибка: ${e.localizedMessage ?: "неизвестная"}"))
             } finally {
                 _isProcessing.value = false
