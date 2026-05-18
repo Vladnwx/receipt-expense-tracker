@@ -35,6 +35,6 @@ interface FnsAuthService {
         data object InvalidCredentials : AuthError()
         data object ExpiredCode : AuthError()
         data object NetworkError : AuthError()
-        data class ServiceError(val message: String) : AuthError()
+        data class ServiceError(val description: String) : AuthError()
     }
 }

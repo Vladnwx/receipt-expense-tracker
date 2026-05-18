@@ -111,7 +111,7 @@ class SettingsViewModel @Inject constructor(
                     FnsAuthService.AuthError.InvalidCredentials -> "Неверный код"
                     FnsAuthService.AuthError.ExpiredCode -> "Код истёк, запросите новый"
                     FnsAuthService.AuthError.NetworkError -> "Ошибка сети, проверьте подключение"
-                    is FnsAuthService.AuthError.ServiceError -> e.message
+                    is FnsAuthService.AuthError.ServiceError -> e.description
                 }
                 _uiState.value = _uiState.value.copy(showSending = false, authErrorMessage = msg)
             } catch (e: Exception) {
