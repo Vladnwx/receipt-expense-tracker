@@ -36,6 +36,7 @@ class ScannerViewModel @Inject constructor(
 
     private val _isProcessing = MutableLiveData(false)
     val isProcessing: LiveData<Boolean> = _isProcessing
+    val isProcessingNow: Boolean get() = _isProcessing.value == true
 
     private val _isScanning = MutableLiveData(true)
     val isScanning: LiveData<Boolean> = _isScanning

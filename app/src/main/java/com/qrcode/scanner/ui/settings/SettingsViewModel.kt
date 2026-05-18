@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.data.repository.AppUpdateRepository
+import com.qrcode.scanner.BuildConfig
 import com.qrcode.scanner.domain.fns.FnsAuthService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -140,11 +141,14 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun checkUpdate() {
+        AppLogger.i("SettingsVM", "checkUpdate started")
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(status = UpdateStatus.Checking, message = "Проверка обновлений…")
             try {
                 val apiUrl = "https://api.github.com/repos/Vladnwx/receipt-expense-tracker/releases/latest"
+                AppLogger.d("SettingsVM", "calling checkForUpdate")
                 val info = updateRepository.checkForUpdate()
+                AppLogger.i("SettingsVM", "checkForUpdate: available=${info.isAvailable} latest=${info.latestVersion} current=${info.currentVersion}")
                 val current = info.currentVersion ?: "неизвестно"
                 val latest = info.latestVersion ?: "неизвестно"
                 val detailMsg = buildString {
@@ -174,6 +178,7 @@ class SettingsViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                AppLogger.e("SettingsVM", "checkUpdate failed", e)
                 _uiState.value = _uiState.value.copy(
                     status = UpdateStatus.Error,
                     message = "Ошибка проверки: ${e.localizedMessage ?: "неизвестная"}"

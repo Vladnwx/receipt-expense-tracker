@@ -264,7 +264,7 @@ class ScannerFragment : Fragment() {
     }
 
     private fun processImage(imageProxy: ImageProxy) {
-        if (viewModel.isScanning.value != true) {
+        if (viewModel.isScanning.value != true || viewModel.isProcessingNow) {
             imageProxy.close()
             return
         }

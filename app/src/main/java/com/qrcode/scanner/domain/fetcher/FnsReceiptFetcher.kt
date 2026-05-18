@@ -2,6 +2,8 @@ package com.qrcode.scanner.domain.fetcher
 
 import com.qrcode.scanner.data.remote.FnsApiService
 import com.qrcode.scanner.data.remote.FnsReceipt
+import com.qrcode.scanner.data.remote.ProverkachekaApi
+import com.qrcode.scanner.data.remote.ProverkachekaRequest
 import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.domain.fns.FnsAuthService
 import com.qrcode.scanner.domain.parser.FnsQrData
@@ -34,14 +36,52 @@ data class FetchedItem(
 @Singleton
 class FnsReceiptFetcher @Inject constructor(
     private val apiService: FnsApiService,
+    private val proverkachekaApi: ProverkachekaApi,
     private val fnsAuthService: FnsAuthService
 ) {
 
     suspend fun fetch(qrData: FnsQrData): FetchResult {
-        AppLogger.i("FnsFetcher", "fetch fn=${qrData.fiscalNumber} fd=${qrData.fiscalDocument}")
+        AppLogger.i("ReceiptFetcher", "fetch fn=${qrData.fiscalNumber} fd=${qrData.fiscalDocument}")
+
+        val pkResult = tryProverkacheka(qrData)
+        if (pkResult != null) return pkResult
+
+        val fnsResult = tryFns(qrData)
+        if (fnsResult != null) return fnsResult
+
+        return FetchResult.NotFound
+    }
+
+    private suspend fun tryProverkacheka(qrData: FnsQrData): FetchResult? {
         return try {
+            AppLogger.d("ReceiptFetcher", "trying proverkacheka.com")
+            val response = proverkachekaApi.getCheckInfo(
+                ProverkachekaRequest(
+                    fn = qrData.fiscalNumber,
+                    fd = qrData.fiscalDocument,
+                    fp = qrData.fiscalSign,
+                    n = qrData.operationType,
+                    s = qrData.sum?.let { (it * 100).toLong() },
+                    t = qrData.date
+                )
+            )
+            val json = response.data?.json
+            if (json == null || json.items.isNullOrEmpty()) {
+                AppLogger.w("ReceiptFetcher", "proverkacheka: no data")
+                return null
+            }
+            AppLogger.i("ReceiptFetcher", "proverkacheka: success")
+            FetchResult.Success(mapPkToFetched(json))
+        } catch (e: Exception) {
+            AppLogger.w("ReceiptFetcher", "proverkacheka failed: ${e.localizedMessage}")
+            null
+        }
+    }
+
+    private suspend fun tryFns(qrData: FnsQrData): FetchResult? {
+        return try {
+            AppLogger.d("ReceiptFetcher", "trying check.nalog.ru")
             val cookies = fnsAuthService.getActiveSession()?.cookies
-            AppLogger.d("FnsFetcher", "cookies present=${cookies != null}")
             val response = apiService.getTicketInfo(
                 cookies = cookies,
                 fiscalNumber = qrData.fiscalNumber,
@@ -51,29 +91,45 @@ class FnsReceiptFetcher @Inject constructor(
                 date = qrData.date,
                 sum = qrData.sum
             )
-
             if (response.code != null && response.code != 0) {
-                AppLogger.w("FnsFetcher", "response code=${response.code} message=${response.message}")
-                return FetchResult.NotFound
+                AppLogger.w("ReceiptFetcher", "FNS response code=${response.code}")
+                return null
             }
-
             val receipt = response.data?.ticket?.document?.receipt
-            if (receipt == null) {
-                AppLogger.w("FnsFetcher", "no receipt data in response")
-                return FetchResult.NotFound
-            }
-            AppLogger.i("FnsFetcher", "fetch success")
-            FetchResult.Success(mapToFetched(receipt))
+                ?: return null
+            AppLogger.i("ReceiptFetcher", "FNS: success")
+            FetchResult.Success(mapFnsToFetched(receipt))
         } catch (e: FnsAuthService.AuthError) {
-            AppLogger.w("FnsFetcher", "unauthorized")
-            FetchResult.Unauthorized
+            AppLogger.w("ReceiptFetcher", "FNS unauthorized")
+            null
         } catch (e: Exception) {
-            AppLogger.e("FnsFetcher", "fetch failed", e)
-            FetchResult.Error(e.localizedMessage ?: "Неизвестная ошибка")
+            AppLogger.w("ReceiptFetcher", "FNS failed: ${e.localizedMessage}")
+            null
         }
     }
 
-    private fun mapToFetched(receipt: FnsReceipt): FetchedReceipt {
+    private fun mapPkToFetched(json: com.qrcode.scanner.data.remote.ProverkachekaJson): FetchedReceipt {
+        val items = json.items?.mapNotNull { item ->
+            if (item.name.isNullOrBlank()) return@mapNotNull null
+            FetchedItem(
+                name = item.name,
+                price = (item.price ?: 0) / 100.0,
+                quantity = item.quantity ?: 1.0,
+                sum = (item.sum ?: 0) / 100.0
+            )
+        } ?: emptyList()
+
+        return FetchedReceipt(
+            items = items,
+            totalSum = (json.totalSum ?: 0) / 100.0,
+            dateTime = json.dateTime,
+            retailPlace = json.retailPlace,
+            user = json.user,
+            retailerInn = json.retailerInn
+        )
+    }
+
+    private fun mapFnsToFetched(receipt: FnsReceipt): FetchedReceipt {
         val items = receipt.items?.mapNotNull { item ->
             if (item.name.isNullOrBlank()) return@mapNotNull null
             FetchedItem(
