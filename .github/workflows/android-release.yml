@@ -49,23 +49,39 @@ jobs:
           cache: gradle
 
       - name: Decode Keystore
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        id: keystore
         run: |
-          echo "${{ secrets.RELEASE_KEY_BASE64 }}" | base64 --decode > release-key.jks
+          if [ -n "${{ secrets.RELEASE_KEY_BASE64 }}" ]; then
+            echo "${{ secrets.RELEASE_KEY_BASE64 }}" | base64 --decode > release-key.jks
+            echo "status=present" >> $GITHUB_OUTPUT
+          else
+            echo "status=missing" >> $GITHUB_OUTPUT
+          fi
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Signed APKs
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+
+      - name: Build Release APK
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
           echo "📦 Сборка версии: $VERSION"
-          ./gradlew assembleDebug assembleRelease --no-daemon \
-            -x lintVitalAnalyzeRelease \
-            -Pandroid.injected.signing.store.file=$(pwd)/release-key.jks \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEY_STORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+          if [ "${{ steps.keystore.outputs.status }}" = "present" ]; then
+            ./gradlew assembleRelease --no-daemon \
+              -x lintVitalAnalyzeRelease \
+              -Pandroid.injected.signing.store.file=$(pwd)/release-key.jks \
+              -Pandroid.injected.signing.store.password=${{ secrets.KEY_STORE_PASSWORD }} \
+              -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+              -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+          else
+            echo "⚠️ Keystore secrets not found, building unsigned release APK"
+            ./gradlew assembleRelease --no-daemon -x lintVitalAnalyzeRelease
+          fi
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
           VERSION: ${{ steps.get_version.outputs.VERSION }}
