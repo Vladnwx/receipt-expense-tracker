@@ -4,7 +4,9 @@ import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.provider.Settings
 import androidx.core.content.FileProvider
 import com.qrcode.scanner.BuildConfig
 import com.qrcode.scanner.data.remote.GitHubReleaseApi
@@ -19,7 +21,7 @@ class AppUpdateRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) : AppUpdateChecker {
 
-    override suspend fun checkForUpdate(): UpdateResult {
+    override suspend fun checkForUpdate(): AppUpdateChecker.UpdateResult {
         return try {
             val release = api.getLatestRelease()
             val latestTag = release.tagName.removePrefix("v")
@@ -31,7 +33,7 @@ class AppUpdateRepository @Inject constructor(
                 asset.name.endsWith(".apk") && asset.name.contains("release")
             }
 
-            UpdateResult(
+            AppUpdateChecker.UpdateResult(
                 isAvailable = isNewer,
                 latestVersion = latestTag,
                 currentVersion = currentVersion,
@@ -40,7 +42,7 @@ class AppUpdateRepository @Inject constructor(
                 isMandatory = shouldBeMandatory(currentVersion, latestTag)
             )
         } catch (e: Exception) {
-            UpdateResult(
+            AppUpdateChecker.UpdateResult(
                 isAvailable = false,
                 latestVersion = null,
                 currentVersion = BuildConfig.VERSION_NAME,
@@ -65,21 +67,41 @@ class AppUpdateRepository @Inject constructor(
     }
 
     fun installApk(fileName: String) {
-        val file = androidx.core.content.FileProvider.getUriForFile(
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val apkFile = java.io.File(downloadsDir, fileName)
+        if (!apkFile.exists()) return
+
+        val file = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
-            java.io.File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                fileName
-            )
+            apkFile
         )
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(file, "application/vnd.android.package-archive")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
+            putExtra(Intent.EXTRA_RETURN_RESULT, true)
         }
 
         if (intent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(intent)
+        }
+    }
+
+    fun canRequestInstallPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.packageManager.canRequestPackageInstalls()
+        } else true
+    }
+
+    fun openInstallSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                data = Uri.parse("package:${context.packageName}")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
             context.startActivity(intent)
         }
     }

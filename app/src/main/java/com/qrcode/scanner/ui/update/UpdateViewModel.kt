@@ -15,8 +15,16 @@ class UpdateViewModel @Inject constructor(
         return updateRepository.downloadApk(url, fileName)
     }
 
-    fun onDownloadComplete(context: Context) {
-        val fileName = "receipt-expense-tracker.apk"
+    fun onDownloadComplete(context: Context, version: String) {
+        val fileName = "receipt-expense-tracker-$version.apk"
         updateRepository.installApk(fileName)
+    }
+
+    fun canInstall(context: Context): Boolean {
+        return updateRepository.canRequestInstallPermission()
+    }
+
+    fun openInstallSettings(context: Context) {
+        updateRepository.openInstallSettings()
     }
 }

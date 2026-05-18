@@ -95,6 +95,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/releaseNotesCard" />
 
+    <TextView
+        android:id="@+id/installPermissionHint"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="@string/install_permission_hint"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/updateButton" />
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/skipButton"
         style="@style/Widget.Material3.Button.TextButton"
@@ -105,6 +119,6 @@
         android:textAppearance="?attr/textAppearanceLabelLarge"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/updateButton" />
+        app:layout_constraintTop_toBottomOf="@id/installPermissionHint" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

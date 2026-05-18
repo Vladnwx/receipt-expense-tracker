@@ -66,7 +66,14 @@ class UpdateDialogFragment : DialogFragment() {
             binding.skipButton.visibility = View.VISIBLE
         }
 
+        checkInstallPermission()
+
         binding.updateButton.setOnClickListener {
+            if (!viewModel.canInstall(requireContext())) {
+                viewModel.openInstallSettings(requireContext())
+                binding.installPermissionHint.visibility = View.VISIBLE
+                return@setOnClickListener
+            }
             startDownload()
         }
 
@@ -75,10 +82,17 @@ class UpdateDialogFragment : DialogFragment() {
         }
     }
 
+    private fun checkInstallPermission() {
+        if (!viewModel.canInstall(requireContext())) {
+            binding.installPermissionHint.visibility = View.VISIBLE
+        }
+    }
+
     private fun startDownload() {
         binding.updateButton.isEnabled = false
         binding.updateButton.text = getString(R.string.update_downloading)
         binding.skipButton.isEnabled = false
+        binding.installPermissionHint.visibility = View.GONE
 
         val fileName = "receipt-expense-tracker-$latestVersion.apk"
         downloadId = viewModel.startDownload(requireContext(), downloadUrl, fileName)
