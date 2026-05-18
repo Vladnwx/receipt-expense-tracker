@@ -182,7 +182,8 @@ class ScannerFragment : Fragment() {
                         .show()
                 }
                 is ScannerEvent.Error -> {
-                    Toast.makeText(requireContext(), R.string.parse_error, Toast.LENGTH_SHORT).show()
+                    Snackbar.make(binding.root, scannerEvent.message, Snackbar.LENGTH_LONG)
+                        .show()
                 }
             }
         }

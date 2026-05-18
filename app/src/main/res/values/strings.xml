@@ -42,4 +42,6 @@
     <string name="install_permission_hint">Разрешите установку из неизвестных источников в настройках</string>
     <string name="gallery">Галерея</string>
     <string name="no_date">—</string>
+    <string name="error_format_not_recognized">Формат QR-кода не распознан</string>
+    <string name="error_fetch_failed">Не удалось получить данные чека</string>
 </resources>

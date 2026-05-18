@@ -15,7 +15,7 @@ sealed class ScannerEvent {
     data class Parsed(val receiptId: Long) : ScannerEvent()
     data class AlreadyExists(val receiptId: Long) : ScannerEvent()
     object Saving : ScannerEvent()
-    object Error : ScannerEvent()
+    data class Error(val message: String) : ScannerEvent()
 }
 
 @HiltViewModel
@@ -54,12 +54,20 @@ class ScannerViewModel @Inject constructor(
 
                 val raw = receiptRepository.saveRaw(rawData)
                 _event.value = Event(ScannerEvent.QrFound(rawData))
+
+                if (qrData == null) {
+                    _event.value = Event(ScannerEvent.Error("Формат QR-кода не распознан"))
+                    return@launch
+                }
+
                 val result = receiptRepository.parseAndFetch(raw.id)
                 if (result?.receipt != null) {
                     _event.value = Event(ScannerEvent.Parsed(result.receipt.id))
+                } else {
+                    _event.value = Event(ScannerEvent.Error("Не удалось получить данные чека"))
                 }
             } catch (e: Exception) {
-                _event.value = Event(ScannerEvent.Error)
+                _event.value = Event(ScannerEvent.Error("Ошибка: ${e.localizedMessage ?: "неизвестная"}"))
             } finally {
                 _isProcessing.value = false
             }
