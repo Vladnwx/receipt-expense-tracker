@@ -53,9 +53,22 @@ jobs:
         run: |
           if [ -n "${{ secrets.RELEASE_KEY_BASE64 }}" ]; then
             echo "${{ secrets.RELEASE_KEY_BASE64 }}" | base64 --decode > release-key.jks
-            echo "status=present" >> $GITHUB_OUTPUT
+            echo "keystore_path=$(pwd)/release-key.jks" >> $GITHUB_OUTPUT
+            echo "keystore_password=${{ secrets.KEY_STORE_PASSWORD }}" >> $GITHUB_OUTPUT
+            echo "key_alias=${{ secrets.KEY_ALIAS }}" >> $GITHUB_OUTPUT
+            echo "key_password=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_OUTPUT
+            echo "status=signed" >> $GITHUB_OUTPUT
           else
-            echo "status=missing" >> $GITHUB_OUTPUT
+            echo "🔑 Secrets not found, generating temporary dev keystore"
+            keytool -genkey -v -keystore release-key.jks \
+              -storepass android -alias android -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Dev, OU=Dev, O=Dev, L=Dev, S=Dev, C=US"
+            echo "keystore_path=$(pwd)/release-key.jks" >> $GITHUB_OUTPUT
+            echo "keystore_password=android" >> $GITHUB_OUTPUT
+            echo "key_alias=android" >> $GITHUB_OUTPUT
+            echo "key_password=android" >> $GITHUB_OUTPUT
+            echo "status=dev" >> $GITHUB_OUTPUT
           fi
 
       - name: Grant execute permission for gradlew
@@ -71,17 +84,12 @@ jobs:
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
           echo "📦 Сборка версии: $VERSION"
-          if [ "${{ steps.keystore.outputs.status }}" = "present" ]; then
-            ./gradlew assembleRelease --no-daemon \
-              -x lintVitalAnalyzeRelease \
-              -Pandroid.injected.signing.store.file=$(pwd)/release-key.jks \
-              -Pandroid.injected.signing.store.password=${{ secrets.KEY_STORE_PASSWORD }} \
-              -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-              -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
-          else
-            echo "⚠️ Keystore secrets not found, building unsigned release APK"
-            ./gradlew assembleRelease --no-daemon -x lintVitalAnalyzeRelease
-          fi
+          ./gradlew assembleRelease --no-daemon \
+            -x lintVitalAnalyzeRelease \
+            -Pandroid.injected.signing.store.file=${{ steps.keystore.outputs.keystore_path }} \
+            -Pandroid.injected.signing.store.password=${{ steps.keystore.outputs.keystore_password }} \
+            -Pandroid.injected.signing.key.alias=${{ steps.keystore.outputs.key_alias }} \
+            -Pandroid.injected.signing.key.password=${{ steps.keystore.outputs.key_password }}
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
           VERSION: ${{ steps.get_version.outputs.VERSION }}
@@ -98,13 +106,8 @@ jobs:
           cp "$DEBUG_APK" "release-artifacts/receipt-expense-tracker-${VERSION}-debug.apk"
           echo "debug_path=release-artifacts/receipt-expense-tracker-${VERSION}-debug.apk" >> $GITHUB_OUTPUT
 
-          if echo "$RELEASE_APK" | grep -q "unsigned"; then
-            cp "$RELEASE_APK" "release-artifacts/receipt-expense-tracker-${VERSION}-release-unsigned.apk"
-            echo "release_path=release-artifacts/receipt-expense-tracker-${VERSION}-release-unsigned.apk" >> $GITHUB_OUTPUT
-          else
-            cp "$RELEASE_APK" "release-artifacts/receipt-expense-tracker-${VERSION}-release.apk"
-            echo "release_path=release-artifacts/receipt-expense-tracker-${VERSION}-release.apk" >> $GITHUB_OUTPUT
-          fi
+          cp "$RELEASE_APK" "release-artifacts/receipt-expense-tracker-${VERSION}-release.apk"
+          echo "release_path=release-artifacts/receipt-expense-tracker-${VERSION}-release.apk" >> $GITHUB_OUTPUT
 
           echo "✅ APK подготовлены"
 
