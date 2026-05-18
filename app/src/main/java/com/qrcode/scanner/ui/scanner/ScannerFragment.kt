@@ -177,8 +177,7 @@ class ScannerFragment : Fragment() {
                     Toast.makeText(requireContext(), R.string.qr_found, Toast.LENGTH_SHORT).show()
                 }
                 is ScannerEvent.Parsed -> {
-                    val bundle = Bundle().apply { putLong("receiptId", scannerEvent.receiptId) }
-                    findNavController().navigate(R.id.action_scanner_to_receiptDetail, bundle)
+                    Toast.makeText(requireContext(), R.string.receipt_saved, Toast.LENGTH_SHORT).show()
                 }
                 is ScannerEvent.AlreadyExists -> {
                     Snackbar.make(binding.root, R.string.receipt_already_exists, Snackbar.LENGTH_LONG)

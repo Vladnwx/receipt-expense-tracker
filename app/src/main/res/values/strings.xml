@@ -46,4 +46,5 @@
     <string name="error_format_not_recognized">Формат QR-кода не распознан</string>
     <string name="error_fetch_failed">Не удалось получить данные чека</string>
     <string name="settings_title">Настройки</string>
+    <string name="receipt_saved">Чек сохранён</string>
 </resources>
