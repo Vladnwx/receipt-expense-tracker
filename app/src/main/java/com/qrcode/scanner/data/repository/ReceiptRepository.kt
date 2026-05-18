@@ -64,7 +64,7 @@ class ReceiptRepository @Inject constructor(
             fiscalDocumentNumber = qrData.fiscalDocument,
             fiscalSign = qrData.fiscalSign,
             amount = fetched?.totalSum ?: qrData.sum ?: 0.0,
-            date = parseDate(qrData.date) ?: System.currentTimeMillis(),
+            date = parseDate(qrData.date) ?: 0L,
             retailerName = fetched?.retailPlace,
             retailerInn = fetched?.retailerInn,
             operationType = qrData.operationType

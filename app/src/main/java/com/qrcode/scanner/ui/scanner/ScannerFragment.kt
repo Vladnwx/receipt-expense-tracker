@@ -2,7 +2,6 @@ package com.qrcode.scanner.ui.scanner
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -52,6 +51,14 @@ class ScannerFragment : Fragment() {
         else showPermissionDenied()
     }
 
+    private val pickImageLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.onImagePicked(uri.toString())
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -70,6 +77,9 @@ class ScannerFragment : Fragment() {
         binding.scanButton.setOnClickListener { toggleCamera() }
         binding.clearButton.setOnClickListener {
             binding.resultText.text = getString(R.string.result_placeholder)
+        }
+        binding.galleryButton.setOnClickListener {
+            pickImageLauncher.launch("image/*")
         }
         binding.torchButton.setOnClickListener { toggleTorch() }
         binding.cameraSwitchButton.setOnClickListener { switchCamera() }
@@ -134,11 +144,6 @@ class ScannerFragment : Fragment() {
     }
 
     private fun updateTorchButton() {
-        binding.torchButton.contentDescription = if (isTorchOn) {
-            getString(R.string.torch_on)
-        } else {
-            getString(R.string.torch_off)
-        }
         binding.torchButton.alpha = if (isTorchOn) 1.0f else 0.6f
     }
 
@@ -155,22 +160,23 @@ class ScannerFragment : Fragment() {
 
     private fun observeEvents() {
         viewModel.event.observe(viewLifecycleOwner) { event ->
-            when (event) {
+            val scannerEvent = event.getContentIfNotHandled() ?: return@observe
+            when (scannerEvent) {
                 is ScannerEvent.Saving -> {
                     binding.resultText.text = getString(R.string.saving_receipt)
                 }
                 is ScannerEvent.QrFound -> {
-                    binding.resultText.text = event.rawData
+                    binding.resultText.text = scannerEvent.rawData
                     Toast.makeText(requireContext(), R.string.qr_found, Toast.LENGTH_SHORT).show()
                 }
                 is ScannerEvent.Parsed -> {
-                    val bundle = Bundle().apply { putLong("receiptId", event.receiptId) }
+                    val bundle = Bundle().apply { putLong("receiptId", scannerEvent.receiptId) }
                     findNavController().navigate(R.id.action_scanner_to_receiptDetail, bundle)
                 }
                 is ScannerEvent.AlreadyExists -> {
                     Snackbar.make(binding.root, R.string.receipt_already_exists, Snackbar.LENGTH_LONG)
                         .setAction(R.string.open) {
-                            val bundle = Bundle().apply { putLong("receiptId", event.receiptId) }
+                            val bundle = Bundle().apply { putLong("receiptId", scannerEvent.receiptId) }
                             findNavController().navigate(R.id.action_scanner_to_receiptDetail, bundle)
                         }
                         .show()

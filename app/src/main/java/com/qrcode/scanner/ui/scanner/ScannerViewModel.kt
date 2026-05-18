@@ -24,8 +24,8 @@ class ScannerViewModel @Inject constructor(
     private val parser: FnsReceiptParser
 ) : ViewModel() {
 
-    private val _event = MutableLiveData<ScannerEvent>()
-    val event: LiveData<ScannerEvent> = _event
+    private val _event = MutableLiveData<Event<ScannerEvent>>()
+    val event: LiveData<Event<ScannerEvent>> = _event
 
     private val _isProcessing = MutableLiveData(false)
     val isProcessing: LiveData<Boolean> = _isProcessing
@@ -37,7 +37,7 @@ class ScannerViewModel @Inject constructor(
         if (_isProcessing.value == true) return
         viewModelScope.launch {
             _isProcessing.value = true
-            _event.value = ScannerEvent.Saving
+            _event.value = Event(ScannerEvent.Saving)
             try {
                 val qrData = parser.parse(rawData)
                 if (qrData != null) {
@@ -47,23 +47,29 @@ class ScannerViewModel @Inject constructor(
                         fp = qrData.fiscalSign
                     )
                     if (existing != null) {
-                        _event.value = ScannerEvent.AlreadyExists(existing.id)
+                        _event.value = Event(ScannerEvent.AlreadyExists(existing.id))
                         return@launch
                     }
                 }
 
                 val raw = receiptRepository.saveRaw(rawData)
-                _event.value = ScannerEvent.QrFound(rawData)
+                _event.value = Event(ScannerEvent.QrFound(rawData))
                 val result = receiptRepository.parseAndFetch(raw.id)
                 if (result?.receipt != null) {
-                    _event.value = ScannerEvent.Parsed(result.receipt.id)
+                    _event.value = Event(ScannerEvent.Parsed(result.receipt.id))
                 }
             } catch (e: Exception) {
-                _event.value = ScannerEvent.Error
+                _event.value = Event(ScannerEvent.Error)
             } finally {
                 _isProcessing.value = false
             }
         }
+    }
+
+    fun onImagePicked(uri: String) {
+        if (_isProcessing.value == true) return
+        _isScanning.value = false
+        _event.value = Event(ScannerEvent.QrFound(uri))
     }
 
     fun toggleScanning() {

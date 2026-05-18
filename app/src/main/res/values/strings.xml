@@ -40,4 +40,6 @@
     <string name="payment_date">Дата оплаты</string>
     <string name="fns_data_title">Данные ФНС</string>
     <string name="install_permission_hint">Разрешите установку из неизвестных источников в настройках</string>
+    <string name="gallery">Галерея</string>
+    <string name="no_date">—</string>
 </resources>

@@ -44,10 +44,10 @@ class ReceiptDetailFragment : Fragment() {
             binding.retailer.text = receipt.retailerName ?: "Чек"
             binding.amount.text = String.format("%.2f ₽", receipt.amount)
 
-            val paymentDate = if (receipt.date > 0) {
+            val paymentDate = if (receipt.date > 0L) {
                 dateFormat.format(Date(receipt.date))
             } else {
-                "—"
+                getString(R.string.no_date)
             }
             binding.paymentDate.text = paymentDate
 
