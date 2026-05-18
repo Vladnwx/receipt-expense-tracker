@@ -33,4 +33,10 @@
     <string name="version_label">Версия %s</string>
     <string name="whats_new">Что нового</string>
     <string name="update_no_notes">Нет описания изменений</string>
+    <string name="receipt_already_exists">Этот чек уже был добавлен</string>
+    <string name="open">Открыть</string>
+    <string name="items_count_format">Товаров: %d</string>
+    <string name="scan_date">Дата сканирования</string>
+    <string name="payment_date">Дата оплаты</string>
+    <string name="fns_data_title">Данные ФНС</string>
 </resources>

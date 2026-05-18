@@ -2,6 +2,7 @@ package com.qrcode.scanner.ui.scanner
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -19,6 +20,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.snackbar.Snackbar
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.qrcode.scanner.R
@@ -65,18 +67,12 @@ class ScannerFragment : Fragment() {
     }
 
     private fun setupUI() {
-        binding.scanButton.setOnClickListener {
-            toggleCamera()
-        }
+        binding.scanButton.setOnClickListener { toggleCamera() }
         binding.clearButton.setOnClickListener {
             binding.resultText.text = getString(R.string.result_placeholder)
         }
-        binding.torchButton.setOnClickListener {
-            toggleTorch()
-        }
-        binding.cameraSwitchButton.setOnClickListener {
-            switchCamera()
-        }
+        binding.torchButton.setOnClickListener { toggleTorch() }
+        binding.cameraSwitchButton.setOnClickListener { switchCamera() }
 
         binding.torchButton.isEnabled = false
         binding.cameraSwitchButton.isEnabled = false
@@ -98,9 +94,11 @@ class ScannerFragment : Fragment() {
         }
 
         if (isScanning) {
+            showPreview()
             bindCamera()
         } else {
             unbindCamera()
+            hidePreview()
         }
 
         binding.torchButton.isEnabled = isScanning
@@ -108,6 +106,16 @@ class ScannerFragment : Fragment() {
         if (!isScanning && isTorchOn) {
             disableTorch()
         }
+    }
+
+    private fun showPreview() {
+        binding.previewView.visibility = View.VISIBLE
+        binding.cameraOverlay.visibility = View.GONE
+    }
+
+    private fun hidePreview() {
+        binding.previewView.visibility = View.GONE
+        binding.cameraOverlay.visibility = View.VISIBLE
     }
 
     private fun toggleTorch() {
@@ -157,7 +165,15 @@ class ScannerFragment : Fragment() {
                 }
                 is ScannerEvent.Parsed -> {
                     val bundle = Bundle().apply { putLong("receiptId", event.receiptId) }
-                    findNavController().navigate(R.id.receiptDetailFragment, bundle)
+                    findNavController().navigate(R.id.action_scanner_to_receiptDetail, bundle)
+                }
+                is ScannerEvent.AlreadyExists -> {
+                    Snackbar.make(binding.root, R.string.receipt_already_exists, Snackbar.LENGTH_LONG)
+                        .setAction(R.string.open) {
+                            val bundle = Bundle().apply { putLong("receiptId", event.receiptId) }
+                            findNavController().navigate(R.id.action_scanner_to_receiptDetail, bundle)
+                        }
+                        .show()
                 }
                 is ScannerEvent.Error -> {
                     Toast.makeText(requireContext(), R.string.parse_error, Toast.LENGTH_SHORT).show()

@@ -90,6 +90,9 @@ class ReceiptRepository @Inject constructor(
         return entities
     }
 
+    suspend fun findExistingReceipt(fn: String, fd: String, fp: String): ReceiptEntity? =
+        receiptDao.findByFiscalInfo(fn, fd, fp)
+
     suspend fun getAllReceipts(): List<ReceiptEntity> = receiptDao.getAll()
 
     suspend fun getReceiptById(id: Long): ReceiptEntity? = receiptDao.getById(id)

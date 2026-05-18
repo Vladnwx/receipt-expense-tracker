@@ -18,4 +18,7 @@ interface ReceiptDao {
 
     @Query("SELECT * FROM receipts WHERE rawId = :rawId")
     suspend fun getByRawId(rawId: Long): ReceiptEntity?
+
+    @Query("SELECT * FROM receipts WHERE fiscalDriveNumber = :fn AND fiscalDocumentNumber = :fd AND fiscalSign = :fp LIMIT 1")
+    suspend fun findByFiscalInfo(fn: String, fd: String, fp: String): ReceiptEntity?
 }
