@@ -36,15 +36,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkForUpdates() {
         lifecycleScope.launch {
-            val result = updateRepository.checkForUpdate()
-            if (result.isAvailable && !result.downloadUrl.isNullOrBlank()) {
-                val dialog = UpdateDialogFragment.newInstance(
-                    latestVersion = result.latestVersion.orEmpty(),
-                    downloadUrl = result.downloadUrl,
-                    releaseNotes = result.releaseNotes.orEmpty(),
-                    isMandatory = result.isMandatory
-                )
-                dialog.show(supportFragmentManager, UpdateDialogFragment.TAG)
+            try {
+                val result = updateRepository.checkForUpdate()
+                if (result.isAvailable && !result.downloadUrl.isNullOrBlank()) {
+                    val dialog = UpdateDialogFragment.newInstance(
+                        latestVersion = result.latestVersion.orEmpty(),
+                        downloadUrl = result.downloadUrl,
+                        releaseNotes = result.releaseNotes.orEmpty(),
+                        isMandatory = result.isMandatory
+                    )
+                    dialog.show(supportFragmentManager, UpdateDialogFragment.TAG)
+                }
+            } catch (_: Exception) {
+                // fail silently – api error is not critical on startup
             }
         }
     }
