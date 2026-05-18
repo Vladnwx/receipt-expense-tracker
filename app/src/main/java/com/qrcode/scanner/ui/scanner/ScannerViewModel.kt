@@ -73,6 +73,7 @@ class ScannerViewModel @Inject constructor(
 
                 receiptRepository.fetchAndUpdate(receipt.id)
 
+                _isScanning.value = false
                 _event.value = Event(ScannerEvent.Parsed(receipt.id))
             } catch (e: Exception) {
                 _event.value = Event(ScannerEvent.Error("Ошибка: ${e.localizedMessage ?: "неизвестная"}"))
