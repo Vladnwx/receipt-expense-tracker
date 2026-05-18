@@ -13,8 +13,6 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
-import androidx.camera.core.resolutionselector.ResolutionSelector
-import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -113,7 +111,7 @@ class ScannerFragment : Fragment() {
     }
 
     private fun toggleTorch() {
-        if (!viewModel.isScanning.value == true) return
+        if (viewModel.isScanning.value != true) return
         if (lensFacing != CameraSelector.LENS_FACING_BACK) return
 
         isTorchOn = !isTorchOn
@@ -171,7 +169,7 @@ class ScannerFragment : Fragment() {
         }
 
         viewModel.isScanning.observe(viewLifecycleOwner) { isScanning ->
-            updateUiForScanningState(isScanning)
+            updateUiForScanningState(isScanning == true)
         }
     }
 
