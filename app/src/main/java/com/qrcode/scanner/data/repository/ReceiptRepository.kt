@@ -7,6 +7,7 @@ import com.qrcode.scanner.data.local.entity.ReceiptEntity
 import com.qrcode.scanner.data.local.entity.ReceiptItemEntity
 import com.qrcode.scanner.data.local.entity.ReceiptRawEntity
 import com.qrcode.scanner.data.local.entity.ReceiptStatus
+import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.domain.fetcher.FetchResult
 import com.qrcode.scanner.domain.fetcher.FetchedReceipt
 import com.qrcode.scanner.domain.fetcher.FnsReceiptFetcher
@@ -42,6 +43,7 @@ class ReceiptRepository @Inject constructor(
     }
 
     suspend fun createReceiptFromQr(rawId: Long, qrData: FnsQrData): ReceiptEntity? {
+        AppLogger.i("ReceiptRepo", "createReceiptFromQr rawId=$rawId fn=${qrData.fiscalNumber}")
         val entity = ReceiptEntity(
             rawId = rawId,
             fiscalDriveNumber = qrData.fiscalNumber,
@@ -57,7 +59,12 @@ class ReceiptRepository @Inject constructor(
     }
 
     suspend fun fetchAndUpdate(receiptId: Long): Boolean {
-        val receipt = receiptDao.getById(receiptId) ?: return false
+        AppLogger.i("ReceiptRepo", "fetchAndUpdate receiptId=$receiptId")
+        val receipt = receiptDao.getById(receiptId)
+        if (receipt == null) {
+            AppLogger.w("ReceiptRepo", "receipt $receiptId not found")
+            return false
+        }
         val raw = rawDao.getById(receipt.rawId) ?: return false
         val qrData = parser.parse(raw.rawData) ?: return false
 

@@ -3,6 +3,7 @@ package com.qrcode.scanner.domain.fns
 import com.qrcode.scanner.data.remote.FnsApiService
 import com.qrcode.scanner.data.remote.FnsAuthCodeRequest
 import com.qrcode.scanner.data.remote.FnsAuthConfirmRequest
+import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.data.repository.FnsAuthRepository
 import android.util.Log
 import javax.inject.Inject
@@ -17,6 +18,7 @@ class FnsAuthServiceImpl @Inject constructor(
     private val pendingPhones = mutableMapOf<String, String>()
 
     override suspend fun requestCode(phone: String): FnsAuthService.AuthCodeResult {
+        AppLogger.i("FnsAuth", "requestCode for $phone")
         try {
             val response = api.requestAuthCode(FnsAuthCodeRequest(phone = phone))
             if (response.code != null && response.code != 0) {
@@ -41,6 +43,7 @@ class FnsAuthServiceImpl @Inject constructor(
     }
 
     override suspend fun confirmCode(sessionId: String, code: String): FnsAuthService.AuthSession {
+        AppLogger.i("FnsAuth", "confirmCode sessionId=$sessionId")
         val phone = pendingPhones.remove(sessionId)
             ?: throw FnsAuthService.AuthError.ServiceError("Сессия не найдена, повторите отправку кода")
         try {
@@ -105,6 +108,7 @@ class FnsAuthServiceImpl @Inject constructor(
     }
 
     override suspend fun logout(sessionId: String) {
+        AppLogger.i("FnsAuth", "logout sessionId=$sessionId")
         authRepository.deactivateAll()
     }
 

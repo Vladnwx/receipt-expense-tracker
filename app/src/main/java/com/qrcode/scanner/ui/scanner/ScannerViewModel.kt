@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.qrcode.scanner.ReceiptExpenseApp
+import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.data.reporter.GitHubIssueReporter
 import com.qrcode.scanner.data.repository.ReceiptRepository
 import com.qrcode.scanner.domain.parser.FnsReceiptParser
@@ -45,6 +46,7 @@ class ScannerViewModel @Inject constructor(
             _isProcessing.value = true
             _event.value = Event(ScannerEvent.Saving)
             try {
+                AppLogger.i("Scanner", "QR detected: ${rawData.take(80)}...")
                 val qrData = parser.parse(rawData)
                 if (qrData != null) {
                     val existing = receiptRepository.findExistingReceipt(
@@ -68,10 +70,12 @@ class ScannerViewModel @Inject constructor(
 
                 val receipt = receiptRepository.createReceiptFromQr(raw.id, qrData)
                 if (receipt == null) {
+                    AppLogger.e("Scanner", "Failed to create receipt from QR")
                     _event.value = Event(ScannerEvent.Error("Не удалось сохранить чек"))
                     return@launch
                 }
 
+                AppLogger.i("Scanner", "Receipt #${receipt.id} created, fetching FNS...")
                 receiptRepository.fetchAndUpdate(receipt.id)
 
                 _isScanning.value = false

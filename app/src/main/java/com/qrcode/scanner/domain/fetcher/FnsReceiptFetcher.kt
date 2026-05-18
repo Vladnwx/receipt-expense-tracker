@@ -2,6 +2,7 @@ package com.qrcode.scanner.domain.fetcher
 
 import com.qrcode.scanner.data.remote.FnsApiService
 import com.qrcode.scanner.data.remote.FnsReceipt
+import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.domain.fns.FnsAuthService
 import com.qrcode.scanner.domain.parser.FnsQrData
 import javax.inject.Inject
@@ -37,8 +38,10 @@ class FnsReceiptFetcher @Inject constructor(
 ) {
 
     suspend fun fetch(qrData: FnsQrData): FetchResult {
+        AppLogger.i("FnsFetcher", "fetch fn=${qrData.fiscalNumber} fd=${qrData.fiscalDocument}")
         return try {
             val cookies = fnsAuthService.getActiveSession()?.cookies
+            AppLogger.d("FnsFetcher", "cookies present=${cookies != null}")
             val response = apiService.getTicketInfo(
                 cookies = cookies,
                 fiscalNumber = qrData.fiscalNumber,
@@ -50,15 +53,22 @@ class FnsReceiptFetcher @Inject constructor(
             )
 
             if (response.code != null && response.code != 0) {
+                AppLogger.w("FnsFetcher", "response code=${response.code} message=${response.message}")
                 return FetchResult.NotFound
             }
 
             val receipt = response.data?.ticket?.document?.receipt
-                ?: return FetchResult.NotFound
+            if (receipt == null) {
+                AppLogger.w("FnsFetcher", "no receipt data in response")
+                return FetchResult.NotFound
+            }
+            AppLogger.i("FnsFetcher", "fetch success")
             FetchResult.Success(mapToFetched(receipt))
         } catch (e: FnsAuthService.AuthError) {
+            AppLogger.w("FnsFetcher", "unauthorized")
             FetchResult.Unauthorized
         } catch (e: Exception) {
+            AppLogger.e("FnsFetcher", "fetch failed", e)
             FetchResult.Error(e.localizedMessage ?: "Неизвестная ошибка")
         }
     }

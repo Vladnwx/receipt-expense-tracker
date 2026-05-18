@@ -16,6 +16,7 @@ class ReceiptExpenseApp : Application() {
         super.onCreate()
         instance = this
         AppLogger.init(this)
+        AppLogger.i("App", "App started, version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
 
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             GitHubIssueReporter.reportError(
