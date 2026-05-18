@@ -1,13 +1,18 @@
 package com.qrcode.scanner.ui.scanner
 
+import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.common.InputImage
+import com.qrcode.scanner.ReceiptExpenseApp
 import com.qrcode.scanner.data.repository.ReceiptRepository
 import com.qrcode.scanner.domain.parser.FnsReceiptParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 sealed class ScannerEvent {
@@ -77,7 +82,25 @@ class ScannerViewModel @Inject constructor(
     fun onImagePicked(uri: String) {
         if (_isProcessing.value == true) return
         _isScanning.value = false
-        _event.value = Event(ScannerEvent.QrFound(uri))
+        _isProcessing.value = true
+        viewModelScope.launch {
+            try {
+                val image = InputImage.fromFilePath(ReceiptExpenseApp.instance, Uri.parse(uri))
+                val barcodeScanner = BarcodeScanning.getClient()
+                val barcodes = barcodeScanner.process(image).await()
+                barcodeScanner.close()
+                val barcode = barcodes.firstOrNull()
+                if (barcode != null && !barcode.rawValue.isNullOrBlank()) {
+                    onQrDetected(barcode.rawValue)
+                } else {
+                    _event.value = Event(ScannerEvent.Error("QR-код не найден на изображении"))
+                }
+            } catch (e: Exception) {
+                _event.value = Event(ScannerEvent.Error("Ошибка обработки изображения: ${e.localizedMessage ?: "неизвестная"}"))
+            } finally {
+                _isProcessing.value = false
+            }
+        }
     }
 
     fun toggleScanning() {

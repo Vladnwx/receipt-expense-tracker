@@ -286,6 +286,19 @@ class ScannerFragment : Fragment() {
             .addOnCompleteListener { imageProxy.close() }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (viewModel.isScanning.value == true && cameraProvider != null) {
+            bindCamera()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unbindCamera()
+        if (isTorchOn) disableTorch()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
