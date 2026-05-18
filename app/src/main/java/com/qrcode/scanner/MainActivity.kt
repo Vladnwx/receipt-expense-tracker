@@ -3,7 +3,6 @@ package com.qrcode.scanner
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.NavigationUI
 import com.qrcode.scanner.data.repository.AppUpdateRepository
@@ -31,15 +30,6 @@ class MainActivity : AppCompatActivity() {
         val navController = navHostFragment.navController
 
         NavigationUI.setupWithNavController(binding.bottomNavigation, navController)
-
-        binding.bottomNavigation.setOnItemSelectedListener { item ->
-            val options = NavOptions.Builder()
-                .setPopUpTo(navController.graph.startDestinationId, true)
-                .setLaunchSingleTop(true)
-                .build()
-            NavigationUI.onNavDestinationSelected(item, navController, options)
-            true
-        }
 
         checkForUpdates()
     }
