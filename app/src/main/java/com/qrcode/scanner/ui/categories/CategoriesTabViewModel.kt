@@ -24,8 +24,6 @@ class CategoriesTabViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CategoriesTabUiState())
     val uiState: StateFlow<CategoriesTabUiState> = _uiState.asStateFlow()
 
-    val categories: StateFlow<List<CategoryEntity>> = _uiState.asStateFlow()
-
     init {
         loadCategories()
     }

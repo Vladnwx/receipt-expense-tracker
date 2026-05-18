@@ -89,9 +89,9 @@ class ScannerViewModel @Inject constructor(
                 val barcodeScanner = BarcodeScanning.getClient()
                 val barcodes = barcodeScanner.process(image).await()
                 barcodeScanner.close()
-                val barcode = barcodes.firstOrNull()
-                if (barcode != null && !barcode.rawValue.isNullOrBlank()) {
-                    onQrDetected(barcode.rawValue)
+                val rawValue = barcodes.firstOrNull()?.rawValue
+                if (!rawValue.isNullOrBlank()) {
+                    onQrDetected(rawValue)
                 } else {
                     _event.value = Event(ScannerEvent.Error("QR-код не найден на изображении"))
                 }
