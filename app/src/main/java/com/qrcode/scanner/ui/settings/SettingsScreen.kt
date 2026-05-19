@@ -1,5 +1,7 @@
 package com.qrcode.scanner.ui.settings
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,15 +12,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
@@ -26,11 +32,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -52,6 +61,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.qrcode.scanner.BuildConfig
+import com.qrcode.scanner.data.local.entity.AccountEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -136,6 +146,14 @@ fun SettingsScreen(
             TokenSection(
                 currentToken = uiState.proverkachekaToken,
                 onEditClick = { viewModel.showTokenDialog() }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            DefaultAccountSection(
+                accounts = uiState.accounts,
+                defaultAccountId = uiState.defaultAccountId,
+                onSelectAccount = { viewModel.setDefaultAccount(it) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -253,6 +271,109 @@ private fun AccountsSection(onAccountsClick: () -> Unit) {
                 Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Управлять счетами")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DefaultAccountSection(
+    accounts: List<AccountEntity>,
+    defaultAccountId: Long?,
+    onSelectAccount: (Long?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.AccountBalance,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Счёт по умолчанию",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Расходы из чеков будут привязаны к этому счёту",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            if (accounts.isEmpty()) {
+                Text(
+                    text = "Нет доступных счетов. Создайте счёт в разделе «Счета»",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = true },
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = defaultAccountId?.let { id ->
+                                accounts.find { it.id == id }?.name ?: "Выберите счёт"
+                            } ?: "Не выбран",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Icon(
+                            imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                            contentDescription = null
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Не выбран") },
+                            onClick = {
+                                onSelectAccount(null)
+                                expanded = false
+                            },
+                            leadingIcon = {
+                                if (defaultAccountId == null) {
+                                    Icon(Icons.Filled.Check, contentDescription = null)
+                                }
+                            }
+                        )
+                        accounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = { Text(account.name) },
+                                onClick = {
+                                    onSelectAccount(account.id)
+                                    expanded = false
+                                },
+                                leadingIcon = {
+                                    if (defaultAccountId == account.id) {
+                                        Icon(Icons.Filled.Check, contentDescription = null)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     }

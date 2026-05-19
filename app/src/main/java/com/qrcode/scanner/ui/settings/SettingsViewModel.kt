@@ -5,10 +5,12 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.qrcode.scanner.data.local.entity.AccountEntity
 import com.qrcode.scanner.data.reporter.AppLogger
+import com.qrcode.scanner.data.repository.AccountRepository
 import com.qrcode.scanner.data.repository.AppUpdateRepository
+import com.qrcode.scanner.data.repository.PreferencesRepository
 import com.qrcode.scanner.data.repository.TokenRepository
-import com.qrcode.scanner.BuildConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,14 +34,18 @@ data class SettingsUiState(
     val showTokenDialog: Boolean = false,
     val tokenSaved: Boolean = false,
     val logCopied: Boolean = false,
-    val logCleared: Boolean = false
+    val logCleared: Boolean = false,
+    val accounts: List<AccountEntity> = emptyList(),
+    val defaultAccountId: Long? = null
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val updateRepository: AppUpdateRepository,
-    private val tokenRepository: TokenRepository
+    private val tokenRepository: TokenRepository,
+    private val accountRepository: AccountRepository,
+    private val preferencesRepository: PreferencesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -47,8 +53,22 @@ class SettingsViewModel @Inject constructor(
 
     init {
         _uiState.value = _uiState.value.copy(
-            proverkachekaToken = tokenRepository.getToken() ?: ""
+            proverkachekaToken = tokenRepository.getToken() ?: "",
+            defaultAccountId = preferencesRepository.getDefaultAccountId()
         )
+        loadAccounts()
+    }
+
+    private fun loadAccounts() {
+        viewModelScope.launch {
+            val accounts = accountRepository.getAll()
+            _uiState.value = _uiState.value.copy(accounts = accounts)
+        }
+    }
+
+    fun setDefaultAccount(accountId: Long?) {
+        preferencesRepository.setDefaultAccountId(accountId)
+        _uiState.value = _uiState.value.copy(defaultAccountId = accountId)
     }
 
     fun showTokenDialog() {

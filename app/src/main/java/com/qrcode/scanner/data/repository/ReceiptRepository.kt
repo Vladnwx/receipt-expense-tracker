@@ -16,6 +16,16 @@ import com.qrcode.scanner.domain.parser.FnsQrData
 import javax.inject.Inject
 import javax.inject.Singleton
 
+sealed class FetchReceiptResult {
+    data class Success(
+        val receipt: ReceiptEntity,
+        val items: List<ReceiptItemEntity>
+    ) : FetchReceiptResult()
+    data object Unauthorized : FetchReceiptResult()
+    data object NotFound : FetchReceiptResult()
+    data class Error(val message: String) : FetchReceiptResult()
+}
+
 data class ParsedReceiptResult(
     val raw: ReceiptRawEntity,
     val receipt: ReceiptEntity?,
@@ -59,15 +69,15 @@ class ReceiptRepository @Inject constructor(
         return entity.copy(id = id)
     }
 
-    suspend fun fetchAndUpdate(receiptId: Long): Boolean {
-        AppLogger.i("ReceiptRepo", "fetchAndUpdate receiptId=$receiptId")
+    suspend fun fetchAndUpdate(receiptId: Long, accountId: Long? = null): FetchReceiptResult {
+        AppLogger.i("ReceiptRepo", "fetchAndUpdate receiptId=$receiptId accountId=$accountId")
         val receipt = receiptDao.getById(receiptId)
         if (receipt == null) {
             AppLogger.w("ReceiptRepo", "receipt $receiptId not found")
-            return false
+            return FetchReceiptResult.Error("Чек не найден в БД")
         }
-        val raw = rawDao.getById(receipt.rawId) ?: return false
-        val qrData = parser.parse(raw.rawData) ?: return false
+        val raw = rawDao.getById(receipt.rawId) ?: return FetchReceiptResult.Error("Сырые данные не найдены")
+        val qrData = parser.parse(raw.rawData) ?: return FetchReceiptResult.Error("Не удалось распарсить QR")
 
         return when (val result = fetcher.fetch(qrData)) {
             is FetchResult.Success -> {
@@ -82,15 +92,25 @@ class ReceiptRepository @Inject constructor(
                 receiptDao.update(updated)
                 saveItems(receiptId, fetched)
                 val savedItems = getItemsByReceiptId(receiptId)
-                expenseRepository.createFromReceiptItems(receipt.id, savedItems)
+                AppLogger.i("ReceiptRepo", "Creating ${savedItems.size} expenses for receipt #$receiptId, accountId=$accountId")
+                expenseRepository.createFromReceiptItems(receipt.id, savedItems, accountId)
                 rawDao.markParsed(receipt.rawId)
-                true
+                AppLogger.i("ReceiptRepo", "Receipt #$receiptId updated: Checked, ${fetched.items.size} items")
+                FetchReceiptResult.Success(updated, savedItems)
             }
-            is FetchResult.Unauthorized -> false
-            is FetchResult.NotFound, is FetchResult.Error -> {
+            is FetchResult.Unauthorized -> {
+                AppLogger.w("ReceiptRepo", "fetch unauthorized, keeping receipt Pending")
+                FetchReceiptResult.Unauthorized
+            }
+            is FetchResult.NotFound -> {
                 val updated = receipt.copy(status = ReceiptStatus.Failed.name)
                 receiptDao.update(updated)
-                false
+                FetchReceiptResult.NotFound
+            }
+            is FetchResult.Error -> {
+                val updated = receipt.copy(status = ReceiptStatus.Failed.name)
+                receiptDao.update(updated)
+                FetchReceiptResult.Error(result.message)
             }
         }
     }
@@ -99,8 +119,9 @@ class ReceiptRepository @Inject constructor(
         val unchecked = receiptDao.getUnchecked()
         var checked = 0
         for (receipt in unchecked) {
-            if (fetchAndUpdate(receipt.id)) {
-                checked++
+            when (fetchAndUpdate(receipt.id)) {
+                is FetchReceiptResult.Success -> checked++
+                else -> {}
             }
         }
         return checked

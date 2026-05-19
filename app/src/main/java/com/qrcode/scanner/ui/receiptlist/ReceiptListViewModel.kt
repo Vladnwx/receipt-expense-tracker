@@ -13,9 +13,7 @@ import javax.inject.Inject
 
 data class ReceiptListUiState(
     val receipts: List<ReceiptEntity> = emptyList(),
-    val isLoading: Boolean = false,
-    val isChecking: Boolean = false,
-    val checkResult: String? = null
+    val isLoading: Boolean = false
 )
 
 @HiltViewModel
@@ -38,21 +36,5 @@ class ReceiptListViewModel @Inject constructor(
                 isLoading = false
             )
         }
-    }
-
-    fun checkReceipts() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isChecking = true, checkResult = null)
-            val checked = receiptRepository.checkUncheckedReceipts()
-            _uiState.value = _uiState.value.copy(
-                receipts = receiptRepository.getAllReceipts(),
-                isChecking = false,
-                checkResult = "Проверено: $checked"
-            )
-        }
-    }
-
-    fun consumeCheckResult() {
-        _uiState.value = _uiState.value.copy(checkResult = null)
     }
 }

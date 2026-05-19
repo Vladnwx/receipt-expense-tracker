@@ -38,18 +38,23 @@ class FnsReceiptFetcher @Inject constructor(
 ) {
 
     suspend fun fetch(qrData: FnsQrData): FetchResult {
-        AppLogger.i("ReceiptFetcher", "fetch fn=${qrData.fiscalNumber} fd=${qrData.fiscalDocument}")
-        return tryProverkacheka(qrData) ?: FetchResult.NotFound
+        AppLogger.i("ReceiptFetcher", "fetch fn=${qrData.fiscalNumber} fd=${qrData.fiscalDocument} fp=${qrData.fiscalSign}")
+        val startTime = System.currentTimeMillis()
+        val result = tryProverkacheka(qrData)
+        val elapsed = System.currentTimeMillis() - startTime
+        AppLogger.i("ReceiptFetcher", "fetch done in ${elapsed}ms: $result")
+        return result ?: FetchResult.NotFound
     }
 
     private suspend fun tryProverkacheka(qrData: FnsQrData): FetchResult? {
         return try {
-            AppLogger.d("ReceiptFetcher", "trying proverkacheka.com")
             val token = tokenRepository.getToken()
             if (token.isNullOrBlank()) {
-                AppLogger.w("ReceiptFetcher", "proverkacheka token not set")
+                AppLogger.w("ReceiptFetcher", "proverkacheka token not set — Unauthorized")
                 return FetchResult.Unauthorized
             }
+            AppLogger.d("ReceiptFetcher", "calling proverkacheka fn=${qrData.fiscalNumber} fd=${qrData.fiscalDocument}")
+
             val response = proverkachekaApi.getCheckInfo(
                 ProverkachekaRequest(
                     fn = qrData.fiscalNumber,
@@ -61,15 +66,18 @@ class FnsReceiptFetcher @Inject constructor(
                     token = token
                 )
             )
+
+            AppLogger.d("ReceiptFetcher", "proverkacheka response code=${response.code} first=${response.first}")
             val json = response.data?.json
             if (json == null || json.items.isNullOrEmpty()) {
-                AppLogger.w("ReceiptFetcher", "proverkacheka: no data")
+                AppLogger.w("ReceiptFetcher", "proverkacheka: no data in response (code=${response.code})")
                 return null
             }
-            AppLogger.i("ReceiptFetcher", "proverkacheka: success")
+
+            AppLogger.i("ReceiptFetcher", "proverkacheka success: ${json.items.size} items, totalSum=${json.totalSum}, place=${json.retailPlace}")
             FetchResult.Success(mapPkToFetched(json))
         } catch (e: Exception) {
-            AppLogger.w("ReceiptFetcher", "proverkacheka failed: ${e.localizedMessage}")
+            AppLogger.e("ReceiptFetcher", "proverkacheka request failed", e)
             null
         }
     }

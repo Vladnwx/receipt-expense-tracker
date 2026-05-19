@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -25,8 +24,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.snackbar.Snackbar
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.qrcode.scanner.R
 import dagger.hilt.android.AndroidEntryPoint
@@ -70,36 +69,33 @@ class ScannerFragment : Fragment() {
     private var composeIsScanning by mutableStateOf(true)
     private var composeTorchOn by mutableStateOf(false)
     private var composeHasPermission by mutableStateOf(false)
-    private var composeResultText by mutableStateOf("")
     private var composePickedImageUri by mutableStateOf<String?>(null)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        composeResultText = getString(R.string.result_placeholder)
         return try {
             ComposeView(requireContext()).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                 setContent {
                     ScannerScreen(
-                        isScanning = composeIsScanning,
+                        viewModel = viewModel,
                         isTorchOn = composeTorchOn,
-                        hasPermission = composeHasPermission,
                         pickedImageUri = composePickedImageUri,
-                        resultText = composeResultText,
-                        onToggleScan = {
-                            composePickedImageUri = null
-                            viewModel.toggleScanning()
-                            bindCamera()
-                        },
                         onTorchClick = { toggleTorch() },
                         onCameraSwitchClick = { switchCamera() },
                         onGalleryClick = { pickImageLauncher.launch("image/*") },
                         onClear = {
-                            composeResultText = getString(R.string.result_placeholder)
                             composePickedImageUri = null
+                            if (!composeIsScanning) {
+                                viewModel.toggleScanning()
+                            }
                         },
-                        onPreviewViewCreated = { pv -> previewView = pv }
+                        onPreviewViewCreated = { pv -> previewView = pv },
+                        onNavigateToReceipt = { receiptId ->
+                            val bundle = Bundle().apply { putLong("receiptId", receiptId) }
+                            findNavController().navigate(R.id.action_scanner_to_receiptDetail, bundle)
+                        }
                     )
                 }
             }
@@ -114,7 +110,6 @@ class ScannerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        observeEvents()
         checkPermission()
     }
 
@@ -140,47 +135,6 @@ class ScannerFragment : Fragment() {
         barcodeScanner?.close()
     }
 
-    private fun observeEvents() {
-        viewModel.event.observe(viewLifecycleOwner) { event ->
-            val scannerEvent = event.getContentIfNotHandled() ?: return@observe
-            when (scannerEvent) {
-                is ScannerEvent.Saving -> {
-                    composeResultText = getString(R.string.saving_receipt)
-                }
-                is ScannerEvent.QrFound -> {
-                    composeResultText = scannerEvent.rawData
-                    Toast.makeText(requireContext(), R.string.qr_found, Toast.LENGTH_SHORT).show()
-                }
-                is ScannerEvent.Parsed -> {
-                    Toast.makeText(requireContext(), R.string.receipt_saved, Toast.LENGTH_SHORT).show()
-                }
-                is ScannerEvent.AlreadyExists -> {
-                    Snackbar.make(requireView(), R.string.receipt_already_exists, Snackbar.LENGTH_LONG)
-                        .setAction(R.string.open) {
-                            val bundle = Bundle().apply { putLong("receiptId", scannerEvent.receiptId) }
-                            findNavController().navigate(R.id.action_scanner_to_receiptDetail, bundle)
-                        }
-                        .show()
-                }
-                is ScannerEvent.Error -> {
-                    Snackbar.make(requireView(), scannerEvent.message, Snackbar.LENGTH_LONG).show()
-                }
-            }
-        }
-
-        viewModel.isScanning.observe(viewLifecycleOwner) { scanning ->
-            composeIsScanning = scanning == true
-            isActive = scanning == true
-            if (scanning == true) {
-                bindCamera()
-            } else {
-                unbindCamera()
-                lastQrDetectedTime = 0L
-            }
-            if (!composeIsScanning && isTorchOn) disableTorch()
-        }
-    }
-
     private fun checkPermission() {
         when {
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
@@ -199,7 +153,7 @@ class ScannerFragment : Fragment() {
                 cameraProvider = cameraProviderFuture.get()
                 bindCamera()
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), R.string.camera_error, Toast.LENGTH_SHORT).show()
+                android.util.Log.e("ScannerFrag", "Camera start error", e)
             }
         }, ContextCompat.getMainExecutor(requireContext()))
     }
@@ -235,7 +189,7 @@ class ScannerFragment : Fragment() {
                 imageAnalysis
             )
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), R.string.camera_error, Toast.LENGTH_SHORT).show()
+            android.util.Log.e("ScannerFrag", "Bind camera error", e)
         }
     }
 
@@ -276,10 +230,8 @@ class ScannerFragment : Fragment() {
         }
         val now = System.currentTimeMillis()
         if (now - lastQrDetectedTime < qrDebounceMs) {
-            if (viewModel.isProcessingNow) {
-                imageProxy.close()
-                return
-            }
+            imageProxy.close()
+            return
         }
         val mediaImage = imageProxy.image ?: run {
             imageProxy.close()
@@ -289,12 +241,11 @@ class ScannerFragment : Fragment() {
         val scanner = barcodeScanner ?: BarcodeScanning.getClient().also { barcodeScanner = it }
         scanner.process(image)
             .addOnSuccessListener { barcodes ->
-                if (barcodes.isNotEmpty()) {
-                    val rawValue = barcodes.first().rawValue
-                    if (!rawValue.isNullOrBlank()) {
-                        lastQrDetectedTime = System.currentTimeMillis()
-                        viewModel.onQrDetected(rawValue)
-                    }
+                val qr = barcodes.firstOrNull { it.format == Barcode.FORMAT_QR_CODE }
+                val rawValue = qr?.rawValue
+                if (rawValue != null && rawValue.isNotBlank()) {
+                    lastQrDetectedTime = System.currentTimeMillis()
+                    viewModel.onQrDetected(rawValue)
                 }
             }
             .addOnCompleteListener { imageProxy.close() }
