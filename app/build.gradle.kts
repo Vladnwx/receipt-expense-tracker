@@ -19,12 +19,12 @@ val commitCount by lazy {
 
 android {
     namespace = "com.qrcode.scanner"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.qrcode.scanner"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = commitCount
         versionName = "1.${commitCount}.0"
 
@@ -84,10 +84,10 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.8.2")
     
     // CameraX dependencies
-    implementation("androidx.camera:camera-core:1.4.2")
-    implementation("androidx.camera:camera-camera2:1.4.2")
-    implementation("androidx.camera:camera-lifecycle:1.4.2")
-    implementation("androidx.camera:camera-view:1.4.2")
+    implementation("androidx.camera:camera-core:1.5.0")
+    implementation("androidx.camera:camera-camera2:1.5.0")
+    implementation("androidx.camera:camera-lifecycle:1.5.0")
+    implementation("androidx.camera:camera-view:1.5.0")
     
     // ML Kit for QR code scanning
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
