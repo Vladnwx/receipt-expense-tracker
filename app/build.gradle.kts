@@ -31,9 +31,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         val githubToken = project.findProperty("githubIssuesToken") as? String ?: ""
-        val pkToken = project.findProperty("proverkachekaToken") as? String ?: ""
         buildConfigField("String", "GITHUB_ISSUES_TOKEN", "\"$githubToken\"")
-        buildConfigField("String", "PROVERKACHEKA_TOKEN", "\"$pkToken\"")
         buildConfigField("String", "GITHUB_REPO", "\"Vladnwx/receipt-expense-tracker\"")
     }
 
@@ -121,6 +119,9 @@ dependencies {
 
     // SwipeRefresh
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
+    // EncryptedSharedPreferences
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Compose
     implementation(platform("androidx.compose:compose-bom:2024.02.00"))

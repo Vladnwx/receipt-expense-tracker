@@ -7,8 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.data.repository.AppUpdateRepository
+import com.qrcode.scanner.data.repository.TokenRepository
 import com.qrcode.scanner.BuildConfig
-import com.qrcode.scanner.domain.fns.FnsAuthService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,12 +21,6 @@ enum class UpdateStatus {
     Idle, Checking, Available, UpToDate, Error
 }
 
-sealed class FnsAuthState {
-    data object Loading : FnsAuthState()
-    data object NotLoggedIn : FnsAuthState()
-    data class LoggedIn(val phone: String) : FnsAuthState()
-}
-
 data class SettingsUiState(
     val status: UpdateStatus = UpdateStatus.Idle,
     val message: String? = null,
@@ -34,11 +28,9 @@ data class SettingsUiState(
     val downloadUrl: String? = null,
     val releaseNotes: String? = null,
     val isMandatory: Boolean = false,
-    val fnsAuthState: FnsAuthState = FnsAuthState.Loading,
-    val showPhoneDialog: Boolean = false,
-    val showSending: Boolean = false,
-    val showCodeDialog: Boolean = false,
-    val authErrorMessage: String? = null,
+    val proverkachekaToken: String = "",
+    val showTokenDialog: Boolean = false,
+    val tokenSaved: Boolean = false,
     val logCopied: Boolean = false,
     val logCleared: Boolean = false
 )
@@ -47,97 +39,47 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val updateRepository: AppUpdateRepository,
-    private val fnsAuthService: FnsAuthService
+    private val tokenRepository: TokenRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
-    private var pendingSessionId: String? = null
-
     init {
-        checkAuthStatus()
+        _uiState.value = _uiState.value.copy(
+            proverkachekaToken = tokenRepository.getToken() ?: ""
+        )
     }
 
-    private fun checkAuthStatus() {
+    fun showTokenDialog() {
+        _uiState.value = _uiState.value.copy(showTokenDialog = true)
+    }
+
+    fun dismissTokenDialog() {
+        _uiState.value = _uiState.value.copy(showTokenDialog = false)
+    }
+
+    fun onTokenInputChanged(value: String) {
+        _uiState.value = _uiState.value.copy(proverkachekaToken = value)
+    }
+
+    fun saveToken() {
         viewModelScope.launch {
-            val session = fnsAuthService.getActiveSession()
+            val token = _uiState.value.proverkachekaToken.trim()
+            if (token.isNotBlank()) {
+                tokenRepository.saveToken(token)
+            } else {
+                tokenRepository.clearToken()
+            }
             _uiState.value = _uiState.value.copy(
-                fnsAuthState = if (session != null) {
-                    FnsAuthState.LoggedIn(phone = session.phone ?: session.sessionId)
-                } else {
-                    FnsAuthState.NotLoggedIn
-                }
+                showTokenDialog = false,
+                tokenSaved = true
             )
         }
     }
 
-    fun showPhoneDialog() {
-        _uiState.value = _uiState.value.copy(showPhoneDialog = true, authErrorMessage = null)
-    }
-
-    fun dismissPhoneDialog() {
-        _uiState.value = _uiState.value.copy(showPhoneDialog = false)
-    }
-
-    fun submitPhone(phone: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(showPhoneDialog = false, showSending = true, authErrorMessage = null)
-            try {
-                val result = fnsAuthService.requestCode(phone)
-                pendingSessionId = result.sessionId
-                _uiState.value = _uiState.value.copy(showSending = false, showCodeDialog = true)
-            } catch (e: FnsAuthService.AuthError) {
-                val msg = when (e) {
-                    FnsAuthService.AuthError.NetworkError -> "Ошибка сети, проверьте подключение"
-                    else -> "Ошибка: ${e}"
-                }
-                _uiState.value = _uiState.value.copy(showSending = false, authErrorMessage = msg)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    showSending = false,
-                    authErrorMessage = "Ошибка: ${e.localizedMessage ?: "неизвестная"}"
-                )
-            }
-        }
-    }
-
-    fun dismissCodeDialog() {
-        _uiState.value = _uiState.value.copy(showCodeDialog = false)
-    }
-
-    fun submitCode(code: String) {
-        val sessionId = pendingSessionId ?: return
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(showCodeDialog = false, showSending = true, authErrorMessage = null)
-            try {
-                fnsAuthService.confirmCode(sessionId, code)
-                pendingSessionId = null
-                _uiState.value = _uiState.value.copy(showSending = false)
-                checkAuthStatus()
-            } catch (e: FnsAuthService.AuthError) {
-                val msg = when (e) {
-                    FnsAuthService.AuthError.InvalidCredentials -> "Неверный код"
-                    FnsAuthService.AuthError.ExpiredCode -> "Код истёк, запросите новый"
-                    FnsAuthService.AuthError.NetworkError -> "Ошибка сети, проверьте подключение"
-                    is FnsAuthService.AuthError.ServiceError -> e.description
-                }
-                _uiState.value = _uiState.value.copy(showSending = false, authErrorMessage = msg)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    showSending = false,
-                    authErrorMessage = "Ошибка: ${e.localizedMessage ?: "неизвестная"}"
-                )
-            }
-        }
-    }
-
-    fun logout() {
-        viewModelScope.launch {
-            val session = fnsAuthService.getActiveSession()
-            fnsAuthService.logout(session?.sessionId ?: "")
-            _uiState.value = _uiState.value.copy(fnsAuthState = FnsAuthState.NotLoggedIn)
-        }
+    fun consumeTokenSaved() {
+        _uiState.value = _uiState.value.copy(tokenSaved = false)
     }
 
     fun checkUpdate() {

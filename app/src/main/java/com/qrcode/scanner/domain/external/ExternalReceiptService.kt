@@ -18,7 +18,6 @@ interface ExternalReceiptService {
     suspend fun checkHealth(): Boolean
 
     enum class ServiceType {
-        FNS,
         OFD,
         PLATFORM,
         OTHER

@@ -18,15 +18,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -84,9 +82,10 @@ fun SettingsScreen(
         }
     }
 
-    LaunchedEffect(uiState.authErrorMessage) {
-        uiState.authErrorMessage?.let {
-            snackbarHostState.showSnackbar(it)
+    LaunchedEffect(uiState.tokenSaved) {
+        if (uiState.tokenSaved) {
+            snackbarHostState.showSnackbar("Токен сохранён")
+            viewModel.consumeTokenSaved()
         }
     }
 
@@ -132,10 +131,9 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            FnsAuthSection(
-                authState = uiState.fnsAuthState,
-                onLoginClick = { viewModel.showPhoneDialog() },
-                onLogoutClick = { viewModel.logout() }
+            TokenSection(
+                currentToken = uiState.proverkachekaToken,
+                onEditClick = { viewModel.showTokenDialog() }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -159,26 +157,20 @@ fun SettingsScreen(
         }
     }
 
-    if (uiState.showPhoneDialog) {
-        PhoneDialog(
-            onDismiss = { viewModel.dismissPhoneDialog() },
-            onConfirm = { viewModel.submitPhone(it) }
-        )
-    }
-
-    if (uiState.showCodeDialog) {
-        CodeDialog(
-            onDismiss = { viewModel.dismissCodeDialog() },
-            onConfirm = { viewModel.submitCode(it) }
+    if (uiState.showTokenDialog) {
+        TokenDialog(
+            currentValue = uiState.proverkachekaToken,
+            onValueChange = { viewModel.onTokenInputChanged(it) },
+            onSave = { viewModel.saveToken() },
+            onDismiss = { viewModel.dismissTokenDialog() }
         )
     }
 }
 
 @Composable
-private fun FnsAuthSection(
-    authState: FnsAuthState,
-    onLoginClick: () -> Unit,
-    onLogoutClick: () -> Unit
+private fun TokenSection(
+    currentToken: String,
+    onEditClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -188,159 +180,81 @@ private fun FnsAuthSection(
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Filled.Person,
+                    imageVector = Icons.Filled.Key,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Авторизация ФНС",
+                    text = "API токен Proverkacheka",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
-            when (authState) {
-                is FnsAuthState.Loading -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Проверка статуса…", style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-                is FnsAuthState.LoggedIn -> {
-                    Text(
-                        text = "Статус: OK",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = authState.phone,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedButton(
-                        onClick = onLogoutClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Выйти")
-                    }
-                }
-                is FnsAuthState.NotLoggedIn -> {
-                    Text(
-                        text = "Не авторизован",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = onLoginClick,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Авторизоваться")
-                    }
-                }
+            Text(
+                text = if (currentToken.isNotBlank()) "Токен установлен" else "Токен не задан",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onEditClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.Key, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (currentToken.isNotBlank()) "Изменить токен" else "Ввести токен")
             }
         }
     }
 }
 
 @Composable
-private fun PhoneDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+private fun TokenDialog(
+    currentValue: String,
+    onValueChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-    var phone by remember { mutableStateOf("+7") }
+    var localValue by remember(currentValue) { mutableStateOf(currentValue) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Авторизация ФНС") },
+        title = { Text("Токен Proverkacheka") },
         text = {
             Column {
                 Text(
-                    text = "Введите номер телефона для входа",
+                    text = "Введите API токен от proverkacheka.com",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = { Text("Номер телефона") },
+                    value = localValue,
+                    onValueChange = {
+                        localValue = it
+                        onValueChange(it)
+                    },
+                    label = { Text("Токен") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Phone,
+                        keyboardType = KeyboardType.Ascii,
                         imeAction = ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(onDone = {
-                        if (phone.isNotBlank()) onConfirm(phone.trim())
+                        onSave()
                     })
                 )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { if (phone.isNotBlank()) onConfirm(phone.trim()) },
-                enabled = phone.isNotBlank()
+                onClick = onSave,
+                enabled = localValue.isNotBlank()
             ) {
-                Text("Получить код")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Отмена")
-            }
-        }
-    )
-}
-
-@Composable
-private fun CodeDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var code by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Подтверждение") },
-        text = {
-            Column {
-                Text(
-                    text = "Введите код из SMS",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = code,
-                    onValueChange = { code = it },
-                    label = { Text("Код из SMS") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(onDone = {
-                        if (code.isNotBlank()) onConfirm(code.trim())
-                    })
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { if (code.isNotBlank()) onConfirm(code.trim()) },
-                enabled = code.isNotBlank()
-            ) {
-                Text("Подтвердить")
+                Text("Сохранить")
             }
         },
         dismissButton = {
@@ -490,7 +404,7 @@ private fun AboutSection() {
             AboutItem("Код сборки", BuildConfig.VERSION_CODE.toString())
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Приложение для сканирования и учёта чеков. Данные загружаются из ФНС России.",
+                text = "Приложение для сканирования и учёта чеков. Данные загружаются через Proverkacheka API.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

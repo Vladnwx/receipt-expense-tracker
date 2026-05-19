@@ -76,7 +76,7 @@ class ScannerViewModel @Inject constructor(
                     return@launch
                 }
 
-                AppLogger.i("Scanner", "Receipt #${receipt.id} created, fetching FNS...")
+                AppLogger.i("Scanner", "Receipt #${receipt.id} created, fetching receipt data...")
                 receiptRepository.fetchAndUpdate(receipt.id)
 
                 _isScanning.value = false

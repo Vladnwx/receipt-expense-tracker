@@ -7,7 +7,6 @@ import com.qrcode.scanner.data.local.dao.AccountDao
 import com.qrcode.scanner.data.local.dao.AccountDefaultCategoryDao
 import com.qrcode.scanner.data.local.dao.CategoryDao
 import com.qrcode.scanner.data.local.dao.ExpenseDao
-import com.qrcode.scanner.data.local.dao.FnsSessionDao
 import com.qrcode.scanner.data.local.dao.ReceiptAttachmentDao
 import com.qrcode.scanner.data.local.dao.ReceiptDao
 import com.qrcode.scanner.data.local.dao.ReceiptItemDao
@@ -42,5 +41,4 @@ object DatabaseModule {
     @Provides fun provideAccountDao(db: AppDatabase): AccountDao = db.accountDao()
     @Provides fun provideAccountDefaultCategoryDao(db: AppDatabase): AccountDefaultCategoryDao = db.accountDefaultCategoryDao()
     @Provides fun provideReceiptAttachmentDao(db: AppDatabase): ReceiptAttachmentDao = db.receiptAttachmentDao()
-    @Provides fun provideFnsSessionDao(db: AppDatabase): FnsSessionDao = db.fnsSessionDao()
 }

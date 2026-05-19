@@ -9,5 +9,6 @@ data class CategoryEntity(
     val id: Long = 0,
     val name: String,
     val icon: String? = null,
-    val color: Int? = null
+    val color: Int? = null,
+    val isPredefined: Boolean = false
 )

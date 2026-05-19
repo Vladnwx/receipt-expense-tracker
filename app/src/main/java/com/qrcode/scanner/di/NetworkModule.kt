@@ -1,6 +1,5 @@
 package com.qrcode.scanner.di
 
-import com.qrcode.scanner.data.remote.FnsApiService
 import com.qrcode.scanner.data.remote.GitHubReleaseApi
 import com.qrcode.scanner.data.remote.ProverkachekaApi
 import dagger.Module
@@ -38,22 +37,6 @@ object NetworkModule {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideRetrofit(client: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl("https://check.nalog.ru/")
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideFnsApiService(retrofit: Retrofit): FnsApiService {
-        return retrofit.create(FnsApiService::class.java)
     }
 
     @Provides
