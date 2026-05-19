@@ -22,16 +22,26 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        try {
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
 
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        val navController = navHostFragment.navController
+            val navHostFragment = supportFragmentManager
+                .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+            val navController = navHostFragment.navController
 
-        NavigationUI.setupWithNavController(binding.bottomNavigation, navController)
+            NavigationUI.setupWithNavController(binding.bottomNavigation, navController)
 
-        checkForUpdates()
+            checkForUpdates()
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "onCreate failed", e)
+            val tv = android.widget.TextView(this).apply {
+                text = "Ошибка: ${e.localizedMessage}"
+                setTextColor(0xFFFF0000.toInt())
+                textSize = 18f
+            }
+            setContentView(tv)
+        }
     }
 
     private fun checkForUpdates() {

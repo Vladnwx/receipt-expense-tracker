@@ -72,29 +72,40 @@ class ScannerFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        return ComposeView(requireContext()).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                ScannerScreen(
-                    isScanning = composeIsScanning,
-                    isTorchOn = composeTorchOn,
-                    hasPermission = composeHasPermission,
-                    pickedImageUri = composePickedImageUri,
-                    resultText = composeResultText,
-                    onToggleScan = {
-                        composePickedImageUri = null
-                        viewModel.toggleScanning()
-                        bindCamera()
-                    },
-                    onTorchClick = { toggleTorch() },
-                    onCameraSwitchClick = { switchCamera() },
-                    onGalleryClick = { pickImageLauncher.launch("image/*") },
-                    onClear = {
-                        composeResultText = getString(R.string.result_placeholder)
-                        composePickedImageUri = null
-                    },
-                    onPreviewViewCreated = { pv -> previewView = pv }
-                )
+        return try {
+            ComposeView(requireContext()).apply {
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+                setContent {
+                    androidx.compose.runtime.SideEffect {
+                        android.util.Log.d("ScannerFrag", "Composition started")
+                    }
+                    ScannerScreen(
+                        isScanning = composeIsScanning,
+                        isTorchOn = composeTorchOn,
+                        hasPermission = composeHasPermission,
+                        pickedImageUri = composePickedImageUri,
+                        resultText = composeResultText,
+                        onToggleScan = {
+                            composePickedImageUri = null
+                            viewModel.toggleScanning()
+                            bindCamera()
+                        },
+                        onTorchClick = { toggleTorch() },
+                        onCameraSwitchClick = { switchCamera() },
+                        onGalleryClick = { pickImageLauncher.launch("image/*") },
+                        onClear = {
+                            composeResultText = getString(R.string.result_placeholder)
+                            composePickedImageUri = null
+                        },
+                        onPreviewViewCreated = { pv -> previewView = pv }
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ScannerFrag", "ComposeView creation failed", e)
+            inflater.inflate(android.R.layout.simple_list_item_1, container, false).apply {
+                findViewById<android.widget.TextView>(android.R.id.text1).text =
+                    "Ошибка: ${e.localizedMessage}"
             }
         }
     }
