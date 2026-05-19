@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
@@ -57,6 +58,7 @@ import com.qrcode.scanner.BuildConfig
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onUpdateAvailable: (latestVersion: String, downloadUrl: String, releaseNotes: String, isMandatory: Boolean) -> Unit,
+    onAccountsClick: () -> Unit,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -138,6 +140,10 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            AccountsSection(onAccountsClick = onAccountsClick)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             UpdateSection(
                 currentVersion = BuildConfig.VERSION_NAME,
                 isChecking = uiState.status == UpdateStatus.Checking,
@@ -206,6 +212,47 @@ private fun TokenSection(
                 Icon(Icons.Filled.Key, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(if (currentToken.isNotBlank()) "Изменить токен" else "Ввести токен")
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountsSection(onAccountsClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.AccountBalance,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Счета",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Управление счетами и картами",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onAccountsClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Управлять счетами")
             }
         }
     }

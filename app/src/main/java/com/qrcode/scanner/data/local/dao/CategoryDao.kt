@@ -19,4 +19,10 @@ interface CategoryDao {
 
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun getById(id: Long): CategoryEntity?
+
+    @Query("SELECT COUNT(*) FROM categories WHERE isPredefined = 1")
+    suspend fun predefinedCount(): Int
+
+    @Insert
+    suspend fun insertAll(categories: List<CategoryEntity>)
 }

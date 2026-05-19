@@ -14,6 +14,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -28,16 +29,12 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.qrcode.scanner.R
-import com.qrcode.scanner.databinding.FragmentScannerBinding
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 @AndroidEntryPoint
 class ScannerFragment : Fragment() {
-
-    private var _binding: FragmentScannerBinding? = null
-    private val binding get() = _binding!!
 
     private val viewModel: ScannerViewModel by viewModels()
 
@@ -46,6 +43,7 @@ class ScannerFragment : Fragment() {
     private val cameraExecutor: ExecutorService by lazy { Executors.newSingleThreadExecutor() }
     private val barcodeScanner = BarcodeScanning.getClient()
 
+    private var previewView: PreviewView? = null
     private var lensFacing = CameraSelector.LENS_FACING_BACK
     private var isTorchOn = false
 
@@ -60,109 +58,51 @@ class ScannerFragment : Fragment() {
         ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
+            composePickedImageUri = uri.toString()
             viewModel.onImagePicked(uri.toString())
         }
     }
 
+    private var composeIsScanning by mutableStateOf(true)
+    private var composeTorchOn by mutableStateOf(false)
+    private var composeHasPermission by mutableStateOf(false)
+    private var composeResultText by mutableStateOf(getString(R.string.result_placeholder))
+    private var composePickedImageUri by mutableStateOf<String?>(null)
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentScannerBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        setupUI()
-        observeEvents()
-        checkPermission()
-    }
-
-    private var composeTorchOn by mutableStateOf(false)
-
-    private fun setupUI() {
-        binding.scanButton.setOnClickListener { toggleCamera() }
-        binding.clearButton.setOnClickListener {
-            binding.resultText.text = getString(R.string.result_placeholder)
-        }
-        binding.galleryButton.setOnClickListener {
-            pickImageLauncher.launch("image/*")
-        }
-
-        binding.scannerControlsComposeView.apply {
+        return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                ScannerControls(
+                ScannerScreen(
+                    isScanning = composeIsScanning,
                     isTorchOn = composeTorchOn,
+                    hasPermission = composeHasPermission,
+                    pickedImageUri = composePickedImageUri,
+                    resultText = composeResultText,
+                    onToggleScan = {
+                        composePickedImageUri = null
+                        viewModel.toggleScanning()
+                        bindCamera()
+                    },
                     onTorchClick = { toggleTorch() },
-                    onCameraSwitchClick = { switchCamera() }
+                    onCameraSwitchClick = { switchCamera() },
+                    onGalleryClick = { pickImageLauncher.launch("image/*") },
+                    onClear = {
+                        composeResultText = getString(R.string.result_placeholder)
+                        composePickedImageUri = null
+                    },
+                    onPreviewViewCreated = { pv -> previewView = pv }
                 )
             }
         }
     }
 
-    private fun toggleCamera() {
-        if (cameraProvider == null) {
-            startCamera()
-            return
-        }
-        viewModel.toggleScanning()
-    }
-
-    private fun updateUiForScanningState(isScanning: Boolean) {
-        binding.scanButton.text = if (isScanning) {
-            getString(R.string.stop_scanning)
-        } else {
-            getString(R.string.start_scanning)
-        }
-
-        if (isScanning) {
-            showPreview()
-            bindCamera()
-        } else {
-            unbindCamera()
-            hidePreview()
-        }
-
-        if (!isScanning && isTorchOn) {
-            disableTorch()
-        }
-    }
-
-    private fun showPreview() {
-        binding.previewView.visibility = View.VISIBLE
-        binding.cameraOverlay.visibility = View.GONE
-    }
-
-    private fun hidePreview() {
-        binding.previewView.visibility = View.GONE
-        binding.cameraOverlay.visibility = View.VISIBLE
-    }
-
-    private fun toggleTorch() {
-        if (viewModel.isScanning.value != true) return
-        if (lensFacing != CameraSelector.LENS_FACING_BACK) return
-
-        isTorchOn = !isTorchOn
-        camera?.cameraControl?.enableTorch(isTorchOn)
-        composeTorchOn = isTorchOn
-    }
-
-    private fun disableTorch() {
-        isTorchOn = false
-        camera?.cameraControl?.enableTorch(false)
-        composeTorchOn = false
-    }
-
-    private fun switchCamera() {
-        if (viewModel.isScanning.value != true) return
-        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
-            CameraSelector.LENS_FACING_FRONT
-        } else {
-            CameraSelector.LENS_FACING_BACK
-        }
-        if (isTorchOn) disableTorch()
-        bindCamera()
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        observeEvents()
+        checkPermission()
     }
 
     private fun observeEvents() {
@@ -170,17 +110,17 @@ class ScannerFragment : Fragment() {
             val scannerEvent = event.getContentIfNotHandled() ?: return@observe
             when (scannerEvent) {
                 is ScannerEvent.Saving -> {
-                    binding.resultText.text = getString(R.string.saving_receipt)
+                    composeResultText = getString(R.string.saving_receipt)
                 }
                 is ScannerEvent.QrFound -> {
-                    binding.resultText.text = scannerEvent.rawData
+                    composeResultText = scannerEvent.rawData
                     Toast.makeText(requireContext(), R.string.qr_found, Toast.LENGTH_SHORT).show()
                 }
                 is ScannerEvent.Parsed -> {
                     Toast.makeText(requireContext(), R.string.receipt_saved, Toast.LENGTH_SHORT).show()
                 }
                 is ScannerEvent.AlreadyExists -> {
-                    Snackbar.make(binding.root, R.string.receipt_already_exists, Snackbar.LENGTH_LONG)
+                    Snackbar.make(requireView(), R.string.receipt_already_exists, Snackbar.LENGTH_LONG)
                         .setAction(R.string.open) {
                             val bundle = Bundle().apply { putLong("receiptId", scannerEvent.receiptId) }
                             findNavController().navigate(R.id.action_scanner_to_receiptDetail, bundle)
@@ -188,29 +128,47 @@ class ScannerFragment : Fragment() {
                         .show()
                 }
                 is ScannerEvent.Error -> {
-                    Snackbar.make(binding.root, scannerEvent.message, Snackbar.LENGTH_LONG)
+                    Snackbar.make(requireView(), scannerEvent.message, Snackbar.LENGTH_LONG)
                         .show()
                 }
             }
         }
 
-        viewModel.isScanning.observe(viewLifecycleOwner) { isScanning ->
-            updateUiForScanningState(isScanning == true)
+        viewModel.isScanning.observe(viewLifecycleOwner) { scanning ->
+            composeIsScanning = scanning == true
+            if (scanning == true) {
+                showPreview()
+                bindCamera()
+            } else {
+                unbindCamera()
+                hidePreview()
+            }
+            if (!composeIsScanning && isTorchOn) disableTorch()
         }
+    }
+
+    private fun showPreview() {
+        previewView?.visibility = View.VISIBLE
+    }
+
+    private fun hidePreview() {
+        // handled by isScanning state in Compose
     }
 
     private fun checkPermission() {
         when {
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED -> startCamera()
+                == PackageManager.PERMISSION_GRANTED -> {
+                composeHasPermission = true
+                startCamera()
+            }
             else -> requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
     private fun showPermissionDenied() {
-        Toast.makeText(requireContext(), R.string.permission_denied, Toast.LENGTH_LONG).show()
-        binding.resultText.text = getString(R.string.permission_required)
-        binding.scanButton.isEnabled = false
+        composeHasPermission = false
+        composeResultText = getString(R.string.permission_required)
     }
 
     private fun startCamera() {
@@ -226,6 +184,8 @@ class ScannerFragment : Fragment() {
     }
 
     private fun bindCamera() {
+        if (!composeIsScanning) return
+        val pv = previewView ?: return
         val provider = cameraProvider ?: return
         provider.unbindAll()
 
@@ -235,7 +195,7 @@ class ScannerFragment : Fragment() {
 
         val preview = Preview.Builder()
             .build()
-            .also { it.setSurfaceProvider(binding.previewView.surfaceProvider) }
+            .also { it.setSurfaceProvider(pv.surfaceProvider) }
 
         val imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -263,8 +223,33 @@ class ScannerFragment : Fragment() {
         camera = null
     }
 
+    private fun toggleTorch() {
+        if (!composeIsScanning) return
+        if (lensFacing != CameraSelector.LENS_FACING_BACK) return
+        isTorchOn = !isTorchOn
+        camera?.cameraControl?.enableTorch(isTorchOn)
+        composeTorchOn = isTorchOn
+    }
+
+    private fun disableTorch() {
+        isTorchOn = false
+        camera?.cameraControl?.enableTorch(false)
+        composeTorchOn = false
+    }
+
+    private fun switchCamera() {
+        if (!composeIsScanning) return
+        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
+        if (isTorchOn) disableTorch()
+        bindCamera()
+    }
+
     private fun processImage(imageProxy: ImageProxy) {
-        if (viewModel.isScanning.value != true || viewModel.isProcessingNow) {
+        if (!composeIsScanning || viewModel.isProcessingNow) {
             imageProxy.close()
             return
         }
@@ -287,7 +272,7 @@ class ScannerFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        if (viewModel.isScanning.value == true && cameraProvider != null) {
+        if (composeIsScanning && cameraProvider != null) {
             bindCamera()
         }
     }
@@ -296,11 +281,6 @@ class ScannerFragment : Fragment() {
         super.onPause()
         unbindCamera()
         if (isTorchOn) disableTorch()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 
     override fun onDestroy() {

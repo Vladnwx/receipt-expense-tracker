@@ -24,4 +24,10 @@ interface ExpenseDao {
 
     @Query("SELECT SUM(amount) FROM expenses WHERE date BETWEEN :start AND :end")
     suspend fun getTotalByDateRange(start: Long, end: Long): Double?
+
+    @Query("SELECT SUM(amount) FROM expenses")
+    suspend fun getTotal(): Double?
+
+    @Query("SELECT SUM(amount) FROM expenses WHERE categoryId = :categoryId")
+    suspend fun getTotalByCategory(categoryId: Long): Double?
 }

@@ -1,12 +1,13 @@
 package com.qrcode.scanner.data.remote
 
 import com.google.gson.annotations.SerializedName
+import retrofit2.Response
 import retrofit2.http.GET
 
 interface GitHubReleaseApi {
 
     @GET("repos/Vladnwx/receipt-expense-tracker/releases/latest")
-    suspend fun getLatestRelease(): GitHubRelease
+    suspend fun getLatestRelease(): Response<GitHubRelease>
 }
 
 data class GitHubRelease(

@@ -1,4 +1,4 @@
-package com.qrcode.scanner.ui.expenses
+package com.qrcode.scanner.ui.accounts
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,12 +8,13 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class ExpensesFragment : Fragment() {
+class AccountsFragment : Fragment() {
 
-    private val viewModel: ExpensesViewModel by viewModels()
+    private val viewModel: AccountsViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -21,7 +22,10 @@ class ExpensesFragment : Fragment() {
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                ExpensesScreen(viewModel = viewModel)
+                AccountsScreen(
+                    viewModel = viewModel,
+                    onBack = { findNavController().navigateUp() }
+                )
             }
         }
     }

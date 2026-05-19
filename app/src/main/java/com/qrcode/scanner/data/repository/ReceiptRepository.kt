@@ -29,7 +29,8 @@ class ReceiptRepository @Inject constructor(
     private val receiptDao: ReceiptDao,
     private val itemDao: ReceiptItemDao,
     private val parser: FnsReceiptParser,
-    private val fetcher: FnsReceiptFetcher
+    private val fetcher: FnsReceiptFetcher,
+    private val expenseRepository: ExpenseRepository
 ) {
 
     suspend fun saveRaw(rawData: String): ReceiptRawEntity {
@@ -80,6 +81,8 @@ class ReceiptRepository @Inject constructor(
                 )
                 receiptDao.update(updated)
                 saveItems(receiptId, fetched)
+                val savedItems = getItemsByReceiptId(receiptId)
+                expenseRepository.createFromReceiptItems(receipt.id, savedItems)
                 rawDao.markParsed(receipt.rawId)
                 true
             }
@@ -118,6 +121,10 @@ class ReceiptRepository @Inject constructor(
     suspend fun getAllRaws(): List<ReceiptRawEntity> = rawDao.getAll()
 
     suspend fun getUncheckedReceipts(): List<ReceiptEntity> = receiptDao.getUnchecked()
+
+    suspend fun setItemCategory(itemId: Long, categoryId: Long?) {
+        itemDao.updateCategory(itemId, categoryId)
+    }
 
     suspend fun deleteReceipt(receipt: ReceiptEntity) {
         itemDao.getByReceiptId(receipt.id).forEach { itemDao.updateCategory(it.id, null) }

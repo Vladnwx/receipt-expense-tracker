@@ -8,6 +8,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import com.qrcode.scanner.R
 import com.qrcode.scanner.ui.update.UpdateDialogFragment
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -31,6 +32,9 @@ class SettingsFragment : Fragment() {
                             isMandatory = isMandatory
                         )
                         dialog.show(parentFragmentManager, UpdateDialogFragment.TAG)
+                    },
+                    onAccountsClick = {
+                        findNavController().navigate(R.id.action_settings_to_accounts)
                     },
                     onBack = { findNavController().navigateUp() }
                 )

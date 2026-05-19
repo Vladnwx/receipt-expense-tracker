@@ -13,7 +13,8 @@ import javax.inject.Inject
 
 data class CategoriesTabUiState(
     val categories: List<CategoryEntity> = emptyList(),
-    val showAddDialog: Boolean = false
+    val showAddDialog: Boolean = false,
+    val errorMessage: String? = null
 )
 
 @HiltViewModel
@@ -53,9 +54,17 @@ class CategoriesTabViewModel @Inject constructor(
     }
 
     fun deleteCategory(category: CategoryEntity) {
+        if (category.isPredefined) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Предустановленную категорию нельзя удалить")
+            return
+        }
         viewModelScope.launch {
             categoryRepository.delete(category)
             loadCategories()
         }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 }

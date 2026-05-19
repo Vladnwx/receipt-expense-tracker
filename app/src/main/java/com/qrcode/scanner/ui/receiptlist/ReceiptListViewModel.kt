@@ -1,31 +1,30 @@
 package com.qrcode.scanner.ui.receiptlist
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qrcode.scanner.data.local.entity.ReceiptEntity
 import com.qrcode.scanner.data.repository.ReceiptRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class ReceiptListUiState(
+    val receipts: List<ReceiptEntity> = emptyList(),
+    val isLoading: Boolean = false,
+    val isChecking: Boolean = false,
+    val checkResult: String? = null
+)
 
 @HiltViewModel
 class ReceiptListViewModel @Inject constructor(
     private val receiptRepository: ReceiptRepository
 ) : ViewModel() {
 
-    private val _receipts = MutableLiveData<List<ReceiptEntity>>(emptyList())
-    val receipts: LiveData<List<ReceiptEntity>> = _receipts
-
-    private val _isLoading = MutableLiveData(false)
-    val isLoading: LiveData<Boolean> = _isLoading
-
-    private val _isChecking = MutableLiveData(false)
-    val isChecking: LiveData<Boolean> = _isChecking
-
-    private val _checkResult = MutableLiveData<String?>(null)
-    val checkResult: LiveData<String?> = _checkResult
+    private val _uiState = MutableStateFlow(ReceiptListUiState())
+    val uiState: StateFlow<ReceiptListUiState> = _uiState.asStateFlow()
 
     init {
         load()
@@ -33,24 +32,27 @@ class ReceiptListViewModel @Inject constructor(
 
     fun load() {
         viewModelScope.launch {
-            _isLoading.value = true
-            _receipts.value = receiptRepository.getAllReceipts()
-            _isLoading.value = false
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(
+                receipts = receiptRepository.getAllReceipts(),
+                isLoading = false
+            )
         }
     }
 
     fun checkReceipts() {
         viewModelScope.launch {
-            _isChecking.value = true
-            _checkResult.value = null
+            _uiState.value = _uiState.value.copy(isChecking = true, checkResult = null)
             val checked = receiptRepository.checkUncheckedReceipts()
-            _receipts.value = receiptRepository.getAllReceipts()
-            _isChecking.value = false
-            _checkResult.value = "Проверено: $checked"
+            _uiState.value = _uiState.value.copy(
+                receipts = receiptRepository.getAllReceipts(),
+                isChecking = false,
+                checkResult = "Проверено: $checked"
+            )
         }
     }
 
     fun consumeCheckResult() {
-        _checkResult.value = null
+        _uiState.value = _uiState.value.copy(checkResult = null)
     }
 }

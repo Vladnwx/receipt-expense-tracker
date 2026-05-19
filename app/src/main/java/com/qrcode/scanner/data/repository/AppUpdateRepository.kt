@@ -22,7 +22,18 @@ class AppUpdateRepository @Inject constructor(
 ) : AppUpdateChecker {
 
     override suspend fun checkForUpdate(): AppUpdateChecker.UpdateResult {
-        val release = api.getLatestRelease()
+        val response = api.getLatestRelease()
+        if (!response.isSuccessful || response.body() == null) {
+            return AppUpdateChecker.UpdateResult(
+                isAvailable = false,
+                latestVersion = null,
+                currentVersion = BuildConfig.VERSION_NAME,
+                downloadUrl = null,
+                releaseNotes = null,
+                isMandatory = false
+            )
+        }
+        val release = response.body()!!
         val latestTag = release.tagName.removePrefix("v")
         val currentVersion = BuildConfig.VERSION_NAME
 

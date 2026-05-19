@@ -18,11 +18,15 @@ class ExpenseRepository @Inject constructor(
         expenseDao.getByDateRange(start, end)
     suspend fun getTotalByDateRange(start: Long, end: Long): Double =
         expenseDao.getTotalByDateRange(start, end) ?: 0.0
+    suspend fun getTotal(): Double = expenseDao.getTotal() ?: 0.0
+    suspend fun getTotalByCategory(categoryId: Long): Double =
+        expenseDao.getTotalByCategory(categoryId) ?: 0.0
     suspend fun save(entity: ExpenseEntity): Long = expenseDao.insert(entity)
 
     suspend fun createFromReceiptItems(
         receiptId: Long,
-        items: List<com.qrcode.scanner.data.local.entity.ReceiptItemEntity>
+        items: List<com.qrcode.scanner.data.local.entity.ReceiptItemEntity>,
+        accountId: Long? = null
     ) {
         items.forEach { item ->
             expenseDao.insert(
@@ -30,6 +34,7 @@ class ExpenseRepository @Inject constructor(
                     receiptId = receiptId,
                     receiptItemId = item.id,
                     categoryId = item.categoryId,
+                    accountId = accountId,
                     amount = item.amount,
                     description = "[чек] ${item.name}",
                     date = System.currentTimeMillis()
