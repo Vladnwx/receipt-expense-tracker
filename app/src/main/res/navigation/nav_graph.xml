@@ -1,12 +1,7 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/placeholderFragment">
-
-    <fragment
-        android:id="@+id/placeholderFragment"
-        android:name="com.qrcode.scanner.ui.scanner.PlaceholderFragment"
-        android:label="Тест" />
+    app:startDestination="@id/scannerFragment">
 
     <fragment
         android:id="@+id/scannerFragment"
