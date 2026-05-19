@@ -46,6 +46,10 @@ class ScannerFragment : Fragment() {
     private var previewView: PreviewView? = null
     private var lensFacing = CameraSelector.LENS_FACING_BACK
     private var isTorchOn = false
+    @Volatile
+    private var isActive = false
+    private var lastQrDetectedTime = 0L
+    private val qrDebounceMs = 2000L
 
     private val requestPermissionLauncher by lazy {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -116,6 +120,7 @@ class ScannerFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        isActive = composeIsScanning
         if (composeIsScanning && cameraProvider != null) {
             bindCamera()
         }
@@ -123,12 +128,14 @@ class ScannerFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
+        isActive = false
         unbindCamera()
         if (isTorchOn) disableTorch()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        isActive = false
         cameraExecutor.shutdown()
         barcodeScanner?.close()
     }
@@ -163,10 +170,12 @@ class ScannerFragment : Fragment() {
 
         viewModel.isScanning.observe(viewLifecycleOwner) { scanning ->
             composeIsScanning = scanning == true
+            isActive = scanning == true
             if (scanning == true) {
                 bindCamera()
             } else {
                 unbindCamera()
+                lastQrDetectedTime = 0L
             }
             if (!composeIsScanning && isTorchOn) disableTorch()
         }
@@ -261,9 +270,16 @@ class ScannerFragment : Fragment() {
     }
 
     private fun processImage(imageProxy: ImageProxy) {
-        if (!composeIsScanning || viewModel.isProcessingNow) {
+        if (!isActive || viewModel.isProcessingNow) {
             imageProxy.close()
             return
+        }
+        val now = System.currentTimeMillis()
+        if (now - lastQrDetectedTime < qrDebounceMs) {
+            if (viewModel.isProcessingNow) {
+                imageProxy.close()
+                return
+            }
         }
         val mediaImage = imageProxy.image ?: run {
             imageProxy.close()
@@ -276,6 +292,7 @@ class ScannerFragment : Fragment() {
                 if (barcodes.isNotEmpty()) {
                     val rawValue = barcodes.first().rawValue
                     if (!rawValue.isNullOrBlank()) {
+                        lastQrDetectedTime = System.currentTimeMillis()
                         viewModel.onQrDetected(rawValue)
                     }
                 }
