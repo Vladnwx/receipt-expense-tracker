@@ -41,37 +41,38 @@ class ScannerFragment : Fragment() {
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private val cameraExecutor: ExecutorService by lazy { Executors.newSingleThreadExecutor() }
-    private val barcodeScanner = BarcodeScanning.getClient()
+    private var barcodeScanner: com.google.mlkit.vision.barcode.BarcodeScanner? = null
 
     private var previewView: PreviewView? = null
     private var lensFacing = CameraSelector.LENS_FACING_BACK
     private var isTorchOn = false
 
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) startCamera()
-        else composeHasPermission = false
+    private val requestPermissionLauncher by lazy {
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) startCamera()
+            else composeHasPermission = false
+        }
     }
 
-    private val pickImageLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
-        if (uri != null) {
-            composePickedImageUri = uri.toString()
-            viewModel.onImagePicked(uri.toString())
+    private val pickImageLauncher by lazy {
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                composePickedImageUri = uri.toString()
+                viewModel.onImagePicked(uri.toString())
+            }
         }
     }
 
     private var composeIsScanning by mutableStateOf(true)
     private var composeTorchOn by mutableStateOf(false)
     private var composeHasPermission by mutableStateOf(false)
-    private var composeResultText by mutableStateOf(getString(R.string.result_placeholder))
+    private var composeResultText by mutableStateOf("")
     private var composePickedImageUri by mutableStateOf<String?>(null)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
+        composeResultText = getString(R.string.result_placeholder)
         return try {
             ComposeView(requireContext()).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -129,7 +130,7 @@ class ScannerFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
-        barcodeScanner.close()
+        barcodeScanner?.close()
     }
 
     private fun observeEvents() {
@@ -269,7 +270,8 @@ class ScannerFragment : Fragment() {
             return
         }
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-        barcodeScanner.process(image)
+        val scanner = barcodeScanner ?: BarcodeScanning.getClient().also { barcodeScanner = it }
+        scanner.process(image)
             .addOnSuccessListener { barcodes ->
                 if (barcodes.isNotEmpty()) {
                     val rawValue = barcodes.first().rawValue
