@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
@@ -101,6 +102,13 @@ fun SettingsScreen(
         }
     }
 
+    LaunchedEffect(uiState.githubTokenSaved) {
+        if (uiState.githubTokenSaved) {
+            snackbarHostState.showSnackbar("GitHub токен сохранён")
+            viewModel.consumeGitHubTokenSaved()
+        }
+    }
+
     LaunchedEffect(uiState.logCopied) {
         if (uiState.logCopied) {
             snackbarHostState.showSnackbar("Лог скопирован в буфер обмена")
@@ -150,6 +158,13 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            GitHubTokenSection(
+                currentToken = uiState.githubIssuesToken,
+                onEditClick = { viewModel.showGitHubTokenDialog() }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             DefaultAccountSection(
                 accounts = uiState.accounts,
                 defaultAccountId = uiState.defaultAccountId,
@@ -183,10 +198,23 @@ fun SettingsScreen(
 
     if (uiState.showTokenDialog) {
         TokenDialog(
+            title = "Токен Proverkacheka",
+            description = "Введите API токен от proverkacheka.com",
             currentValue = uiState.proverkachekaToken,
             onValueChange = { viewModel.onTokenInputChanged(it) },
             onSave = { viewModel.saveToken() },
             onDismiss = { viewModel.dismissTokenDialog() }
+        )
+    }
+
+    if (uiState.showGitHubTokenDialog) {
+        TokenDialog(
+            title = "GitHub токен",
+            description = "Введите GitHub Personal Access Token (scopes: public_repo)",
+            currentValue = uiState.githubIssuesToken,
+            onValueChange = { viewModel.onGitHubTokenInputChanged(it) },
+            onSave = { viewModel.saveGitHubToken() },
+            onDismiss = { viewModel.dismissGitHubTokenDialog() }
         )
     }
 }
@@ -228,6 +256,56 @@ private fun TokenSection(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Filled.Key, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (currentToken.isNotBlank()) "Изменить токен" else "Ввести токен")
+            }
+        }
+    }
+}
+
+@Composable
+private fun GitHubTokenSection(
+    currentToken: String,
+    onEditClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.BugReport,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "GitHub токен (crash reports)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = if (currentToken.isNotBlank()) "Токен установлен" else "Токен не задан",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Используется для автоматического создания issue при краше. Минимальные права: public_repo",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onEditClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(if (currentToken.isNotBlank()) "Изменить токен" else "Ввести токен")
             }
@@ -381,6 +459,8 @@ private fun DefaultAccountSection(
 
 @Composable
 private fun TokenDialog(
+    title: String,
+    description: String,
     currentValue: String,
     onValueChange: (String) -> Unit,
     onSave: () -> Unit,
@@ -390,11 +470,11 @@ private fun TokenDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Токен Proverkacheka") },
+        title = { Text(title) },
         text = {
             Column {
                 Text(
-                    text = "Введите API токен от proverkacheka.com",
+                    text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

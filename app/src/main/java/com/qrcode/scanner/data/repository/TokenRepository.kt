@@ -37,7 +37,18 @@ class TokenRepository @Inject constructor(
 
     fun hasToken(): Boolean = !getToken().isNullOrBlank()
 
+    fun getGitHubIssuesToken(): String? = prefs.getString(KEY_GITHUB_ISSUES_TOKEN, null)
+
+    fun saveGitHubIssuesToken(token: String) {
+        prefs.edit().putString(KEY_GITHUB_ISSUES_TOKEN, token).apply()
+    }
+
+    fun clearGitHubIssuesToken() {
+        prefs.edit().remove(KEY_GITHUB_ISSUES_TOKEN).apply()
+    }
+
     companion object {
         private const val KEY_PROVERKACHEKA_TOKEN = "proverkacheka_token"
+        private const val KEY_GITHUB_ISSUES_TOKEN = "github_issues_token"
     }
 }

@@ -32,7 +32,10 @@ data class SettingsUiState(
     val isMandatory: Boolean = false,
     val proverkachekaToken: String = "",
     val showTokenDialog: Boolean = false,
+    val showGitHubTokenDialog: Boolean = false,
+    val githubIssuesToken: String = "",
     val tokenSaved: Boolean = false,
+    val githubTokenSaved: Boolean = false,
     val logCopied: Boolean = false,
     val logCleared: Boolean = false,
     val accounts: List<AccountEntity> = emptyList(),
@@ -54,6 +57,7 @@ class SettingsViewModel @Inject constructor(
     init {
         _uiState.value = _uiState.value.copy(
             proverkachekaToken = tokenRepository.getToken() ?: "",
+            githubIssuesToken = tokenRepository.getGitHubIssuesToken() ?: "",
             defaultAccountId = preferencesRepository.getDefaultAccountId()
         )
         loadAccounts()
@@ -100,6 +104,37 @@ class SettingsViewModel @Inject constructor(
 
     fun consumeTokenSaved() {
         _uiState.value = _uiState.value.copy(tokenSaved = false)
+    }
+
+    fun showGitHubTokenDialog() {
+        _uiState.value = _uiState.value.copy(showGitHubTokenDialog = true)
+    }
+
+    fun dismissGitHubTokenDialog() {
+        _uiState.value = _uiState.value.copy(showGitHubTokenDialog = false)
+    }
+
+    fun onGitHubTokenInputChanged(value: String) {
+        _uiState.value = _uiState.value.copy(githubIssuesToken = value)
+    }
+
+    fun saveGitHubToken() {
+        viewModelScope.launch {
+            val token = _uiState.value.githubIssuesToken.trim()
+            if (token.isNotBlank()) {
+                tokenRepository.saveGitHubIssuesToken(token)
+            } else {
+                tokenRepository.clearGitHubIssuesToken()
+            }
+            _uiState.value = _uiState.value.copy(
+                showGitHubTokenDialog = false,
+                githubTokenSaved = true
+            )
+        }
+    }
+
+    fun consumeGitHubTokenSaved() {
+        _uiState.value = _uiState.value.copy(githubTokenSaved = false)
     }
 
     fun checkUpdate() {

@@ -11,7 +11,6 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.qrcode.scanner.data.local.entity.ReceiptStatus
 import com.qrcode.scanner.data.reporter.AppLogger
-import com.qrcode.scanner.data.reporter.GitHubIssueReporter
 import com.qrcode.scanner.data.repository.FetchReceiptResult
 import com.qrcode.scanner.data.repository.PreferencesRepository
 import com.qrcode.scanner.data.repository.ReceiptRepository

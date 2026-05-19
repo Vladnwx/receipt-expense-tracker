@@ -2,6 +2,7 @@ package com.qrcode.scanner.data.reporter
 
 import android.util.Log
 import com.qrcode.scanner.BuildConfig
+import com.qrcode.scanner.data.repository.TokenRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -13,16 +14,31 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object GitHubIssueReporter {
-
-    private const val TAG = "GitHubIssueReporter"
+@Singleton
+class GitHubIssueReporter @Inject constructor(
+    private val tokenRepository: TokenRepository
+) {
     private val client = OkHttpClient.Builder()
-        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+
+    private fun resolveToken(): String? {
+        val fromPrefs = tokenRepository.getGitHubIssuesToken()
+        if (!fromPrefs.isNullOrBlank()) return fromPrefs
+        val fromBuildConfig = BuildConfig.GITHUB_ISSUES_TOKEN
+        if (fromBuildConfig.isNotBlank()) {
+            tokenRepository.saveGitHubIssuesToken(fromBuildConfig)
+            return fromBuildConfig
+        }
+        return null
+    }
 
     fun reportError(
         title: String,
@@ -30,9 +46,9 @@ object GitHubIssueReporter {
         throwable: Throwable? = null
     ) {
         AppLogger.e("GitHubIssueReporter", "$title: $details", throwable)
-        val token = BuildConfig.GITHUB_ISSUES_TOKEN
-        if (token.isBlank()) {
-            Log.w(TAG, "GITHUB_ISSUES_TOKEN not configured, skipping issue report")
+        val token = resolveToken()
+        if (token.isNullOrBlank()) {
+            Log.w(TAG, "GitHub token not configured, skipping issue report")
             return
         }
 
@@ -81,5 +97,9 @@ object GitHubIssueReporter {
                 Log.e(TAG, "Error reporting issue", e)
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "GitHubIssueReporter"
     }
 }
