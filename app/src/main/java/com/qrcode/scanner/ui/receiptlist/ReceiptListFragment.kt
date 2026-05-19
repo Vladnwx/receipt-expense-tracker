@@ -33,4 +33,9 @@ class ReceiptListFragment : Fragment() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.load()
+    }
 }
