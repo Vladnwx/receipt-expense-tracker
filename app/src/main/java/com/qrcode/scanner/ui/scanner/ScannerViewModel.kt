@@ -204,6 +204,10 @@ class ScannerViewModel @Inject constructor(
                         AppLogger.w("Scanner", "Fetch #$receiptId failed: ${result.message}")
                         _event.value = Event(ScannerEvent.CheckError("Ошибка проверки: ${result.message}"))
                     }
+                    is FetchReceiptResult.RateLimited -> {
+                        AppLogger.w("Scanner", "Fetch #$receiptId: rate limited")
+                        _event.value = Event(ScannerEvent.CheckError("Сервис временно недоступен, повторите позже"))
+                    }
                 }
             } catch (e: Exception) {
                 AppLogger.e("Scanner", "Fetch #$receiptId crashed", e)

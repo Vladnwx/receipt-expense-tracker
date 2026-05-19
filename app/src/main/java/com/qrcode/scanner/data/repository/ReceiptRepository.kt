@@ -24,6 +24,7 @@ sealed class FetchReceiptResult {
     data object Unauthorized : FetchReceiptResult()
     data object NotFound : FetchReceiptResult()
     data class Error(val message: String) : FetchReceiptResult()
+    data object RateLimited : FetchReceiptResult()
 }
 
 data class ParsedReceiptResult(
@@ -111,6 +112,10 @@ class ReceiptRepository @Inject constructor(
                 val updated = receipt.copy(status = ReceiptStatus.Failed.name)
                 receiptDao.update(updated)
                 FetchReceiptResult.Error(result.message)
+            }
+            is FetchResult.RateLimited -> {
+                AppLogger.w("ReceiptRepo", "fetch rate limited, keeping receipt Pending")
+                FetchReceiptResult.RateLimited
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.qrcode.scanner.data.remote
 
+import com.google.gson.JsonElement
 import retrofit2.http.Body
 import retrofit2.http.POST
 
@@ -17,11 +18,7 @@ data class ProverkachekaRequest(
 data class ProverkachekaResponse(
     val code: Int? = null,
     val first: Int? = null,
-    val data: ProverkachekaData? = null
-)
-
-data class ProverkachekaData(
-    val json: ProverkachekaJson? = null
+    val data: JsonElement? = null
 )
 
 data class ProverkachekaJson(
@@ -43,7 +40,7 @@ data class ProverkachekaItem(
 
 interface ProverkachekaApi {
 
-    @POST("check/get")
+    @POST("api/v1/check/get")
     suspend fun getCheckInfo(
         @Body request: ProverkachekaRequest
     ): ProverkachekaResponse
