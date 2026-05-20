@@ -84,10 +84,10 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.8.2")
     
     // CameraX dependencies
-    implementation("androidx.camera:camera-core:1.5.0")
-    implementation("androidx.camera:camera-camera2:1.5.0")
-    implementation("androidx.camera:camera-lifecycle:1.5.0")
-    implementation("androidx.camera:camera-view:1.5.0")
+    implementation("androidx.camera:camera-core:1.5.2")
+    implementation("androidx.camera:camera-camera2:1.5.2")
+    implementation("androidx.camera:camera-lifecycle:1.5.2")
+    implementation("androidx.camera:camera-view:1.5.2")
     
     // ML Kit for QR code scanning
     implementation("com.google.mlkit:barcode-scanning:17.2.0")

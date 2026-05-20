@@ -32,6 +32,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -160,7 +161,9 @@ fun SettingsScreen(
 
             GitHubTokenSection(
                 currentToken = uiState.githubIssuesToken,
-                onEditClick = { viewModel.showGitHubTokenDialog() }
+                onEditClick = { viewModel.showGitHubTokenDialog() },
+                onTestIssue = { viewModel.testCreateIssue() },
+                isTestingIssue = uiState.status == UpdateStatus.Checking
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -266,7 +269,9 @@ private fun TokenSection(
 @Composable
 private fun GitHubTokenSection(
     currentToken: String,
-    onEditClick: () -> Unit
+    onEditClick: () -> Unit,
+    onTestIssue: () -> Unit,
+    isTestingIssue: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -308,6 +313,27 @@ private fun GitHubTokenSection(
                 Icon(Icons.Filled.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(if (currentToken.isNotBlank()) "Изменить токен" else "Ввести токен")
+            }
+            if (currentToken.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onTestIssue,
+                    enabled = !isTestingIssue,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    if (isTestingIssue) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onSecondary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(if (isTestingIssue) "Создание…" else "Тест создания Issue")
+                }
             }
         }
     }

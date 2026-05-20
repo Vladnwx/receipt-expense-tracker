@@ -116,16 +116,11 @@ class ScannerFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         isActive = composeIsScanning
-        if (composeIsScanning && cameraProvider != null) {
-            bindCamera()
-        }
     }
 
     override fun onPause() {
         super.onPause()
         isActive = false
-        unbindCamera()
-        if (isTorchOn) disableTorch()
     }
 
     override fun onDestroy() {
@@ -191,11 +186,6 @@ class ScannerFragment : Fragment() {
         } catch (e: Exception) {
             android.util.Log.e("ScannerFrag", "Bind camera error", e)
         }
-    }
-
-    private fun unbindCamera() {
-        cameraProvider?.unbindAll()
-        camera = null
     }
 
     private fun toggleTorch() {

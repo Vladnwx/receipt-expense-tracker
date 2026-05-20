@@ -6,7 +6,9 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qrcode.scanner.data.local.entity.AccountEntity
+import com.qrcode.scanner.BuildConfig
 import com.qrcode.scanner.data.reporter.AppLogger
+import com.qrcode.scanner.data.reporter.GitHubIssueReporter
 import com.qrcode.scanner.data.repository.AccountRepository
 import com.qrcode.scanner.data.repository.AppUpdateRepository
 import com.qrcode.scanner.data.repository.PreferencesRepository
@@ -48,7 +50,8 @@ class SettingsViewModel @Inject constructor(
     private val updateRepository: AppUpdateRepository,
     private val tokenRepository: TokenRepository,
     private val accountRepository: AccountRepository,
-    private val preferencesRepository: PreferencesRepository
+    private val preferencesRepository: PreferencesRepository,
+    private val githubIssueReporter: GitHubIssueReporter
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -135,6 +138,30 @@ class SettingsViewModel @Inject constructor(
 
     fun consumeGitHubTokenSaved() {
         _uiState.value = _uiState.value.copy(githubTokenSaved = false)
+    }
+
+    fun testCreateIssue() {
+        AppLogger.i("SettingsVM", "testCreateIssue started")
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(status = UpdateStatus.Checking, message = "Создание тестового issue…")
+            try {
+                githubIssueReporter.reportError(
+                    title = "Тестовый issue из настроек",
+                    details = "Создан пользователем через кнопку в настройках приложения.\nВерсия: ${BuildConfig.VERSION_NAME}",
+                    throwable = null
+                )
+                _uiState.value = _uiState.value.copy(
+                    status = UpdateStatus.UpToDate,
+                    message = "Тестовый issue создан"
+                )
+            } catch (e: Exception) {
+                AppLogger.e("SettingsVM", "testCreateIssue failed", e)
+                _uiState.value = _uiState.value.copy(
+                    status = UpdateStatus.Error,
+                    message = "Ошибка: ${e.localizedMessage ?: "неизвестная"}"
+                )
+            }
+        }
     }
 
     fun checkUpdate() {
