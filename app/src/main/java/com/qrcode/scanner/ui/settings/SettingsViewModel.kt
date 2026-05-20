@@ -42,6 +42,7 @@ data class SettingsUiState(
     val githubTokenSaved: Boolean = false,
     val logCopied: Boolean = false,
     val logCleared: Boolean = false,
+    val logSent: Boolean = false,
     val accounts: List<AccountEntity> = emptyList(),
     val defaultAccountId: Long? = null
 )
@@ -147,15 +148,22 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(status = UpdateStatus.Checking, message = "Создание тестового issue…")
             try {
-                githubIssueReporter.reportError(
+                val success = githubIssueReporter.reportIssue(
                     title = "Тестовый issue из настроек",
                     details = "Создан пользователем через кнопку в настройках приложения.\nВерсия: ${BuildConfig.VERSION_NAME}",
                     throwable = null
                 )
-                _uiState.value = _uiState.value.copy(
-                    status = UpdateStatus.UpToDate,
-                    message = "Тестовый issue создан"
-                )
+                if (success) {
+                    _uiState.value = _uiState.value.copy(
+                        status = UpdateStatus.UpToDate,
+                        message = "Тестовый issue создан"
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        status = UpdateStatus.Error,
+                        message = "Ошибка: токен не настроен или запрос не удался"
+                    )
+                }
             } catch (e: Exception) {
                 AppLogger.e("SettingsVM", "testCreateIssue failed", e)
                 _uiState.value = _uiState.value.copy(
@@ -218,6 +226,51 @@ class SettingsViewModel @Inject constructor(
 
     fun consumeLogCleared() {
         _uiState.value = _uiState.value.copy(logCleared = false)
+    }
+
+    fun sendErrorLogsToIssue() {
+        AppLogger.i("SettingsVM", "sendErrorLogsToIssue started")
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(status = UpdateStatus.Checking, message = "Отправка ошибок в GitHub Issues…")
+            try {
+                val logText = AppLogger.getErrorLogText()
+                if (logText.isBlank()) {
+                    _uiState.value = _uiState.value.copy(
+                        status = UpdateStatus.Error,
+                        message = "Нет ошибок для отправки"
+                    )
+                    return@launch
+                }
+                val success = githubIssueReporter.reportIssue(
+                    title = "Ошибки из лога приложения",
+                    details = "Автоматическая отправка логов ошибок.\n\nВерсия: ${BuildConfig.VERSION_NAME}\n\n## Лог ошибок\n\n```\n$logText\n```",
+                    throwable = null
+                )
+                if (success) {
+                    AppLogger.clearLog()
+                    _uiState.value = _uiState.value.copy(
+                        status = UpdateStatus.UpToDate,
+                        message = "Ошибки отправлены в Issue, лог очищен",
+                        logSent = true
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        status = UpdateStatus.Error,
+                        message = "Ошибка: токен не настроен или запрос не удался"
+                    )
+                }
+            } catch (e: Exception) {
+                AppLogger.e("SettingsVM", "sendErrorLogsToIssue failed", e)
+                _uiState.value = _uiState.value.copy(
+                    status = UpdateStatus.Error,
+                    message = "Ошибка: ${e.localizedMessage ?: "неизвестная"}"
+                )
+            }
+        }
+    }
+
+    fun consumeLogSent() {
+        _uiState.value = _uiState.value.copy(logSent = false)
     }
 
     fun consumeMessage() {

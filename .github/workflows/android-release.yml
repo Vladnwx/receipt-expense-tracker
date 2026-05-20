@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   build:
@@ -105,5 +106,31 @@ jobs:
           generate_release_notes: true
           make_latest: true
           fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Close open crash issues
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          echo "🔍 Поиск открытых crash issues для версии ${VERSION}..."
+          gh issue list \
+            --repo "${{ github.repository }}" \
+            --label "" \
+            --state open \
+            --json number,title \
+            --jq '.[] | select(.title | startswith("[Crash]")) | .number' \
+          | while read -r issue_number; do
+            if [ -n "$issue_number" ]; then
+              echo "📝 Комментарий к issue #${issue_number}..."
+              gh issue comment "$issue_number" \
+                --repo "${{ github.repository }}" \
+                --body "Вышла новая версия **v${VERSION}**. Если ошибка больше не воспроизводится, issue будет закрыт."
+              echo "🔒 Закрытие issue #${issue_number}..."
+              gh issue close "$issue_number" \
+                --repo "${{ github.repository }}" \
+                --comment "Автоматически закрыто после релиза v${VERSION}."
+            fi
+          done
+          echo "✅ Crash issues обработаны"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

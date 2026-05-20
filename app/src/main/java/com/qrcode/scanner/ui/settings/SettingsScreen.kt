@@ -124,6 +124,13 @@ fun SettingsScreen(
         }
     }
 
+    LaunchedEffect(uiState.logSent) {
+        if (uiState.logSent) {
+            snackbarHostState.showSnackbar("Ошибки отправлены в GitHub Issues")
+            viewModel.consumeLogSent()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -190,7 +197,8 @@ fun SettingsScreen(
 
             LogSection(
                 onCopyLog = { viewModel.copyLog() },
-                onClearLog = { viewModel.clearLog() }
+                onClearLog = { viewModel.clearLog() },
+                onSendLogs = { viewModel.sendErrorLogsToIssue() }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -597,7 +605,8 @@ private fun UpdateSection(
 @Composable
 private fun LogSection(
     onCopyLog: () -> Unit,
-    onClearLog: () -> Unit
+    onClearLog: () -> Unit,
+    onSendLogs: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -633,6 +642,15 @@ private fun LogSection(
                 Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Скопировать лог")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onSendLogs,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Отправить ошибки в Issue")
             }
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(

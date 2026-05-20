@@ -6,6 +6,7 @@ import com.qrcode.scanner.data.repository.TokenRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -54,49 +55,84 @@ class GitHubIssueReporter @Inject constructor(
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val stackTrace = throwable?.let { Log.getStackTraceString(it) } ?: ""
-                val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
-                val body = JSONObject().apply {
-                    put("title", "[Crash] $title")
-                    put("body", buildString {
-                        appendLine("## Автоматический отчёт об ошибке")
-                        appendLine()
-                        appendLine("- **Версия:** ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
-                        appendLine("- **Время:** $dateStr")
-                        appendLine()
-                        appendLine("### Описание")
-                        appendLine()
-                        appendLine(details)
-                        if (stackTrace.isNotBlank()) {
-                            appendLine()
-                            appendLine("### Stacktrace")
-                            appendLine()
-                            appendLine("```")
-                            appendLine(stackTrace)
-                            appendLine("```")
-                        }
-                    })
-                }
-
-                val request = Request.Builder()
-                    .url("https://api.github.com/repos/${BuildConfig.GITHUB_REPO}/issues")
-                    .header("Authorization", "Bearer $token")
-                    .header("Accept", "application/vnd.github.v3+json")
-                    .header("User-Agent", "ReceiptExpenseTracker/1.0")
-                    .post(body.toString().toRequestBody(jsonMediaType))
-                    .build()
-
-                val response = client.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    Log.e(TAG, "Failed to create issue: ${response.code} ${response.body?.string()}")
-                } else {
-                    Log.i(TAG, "Issue created successfully")
-                }
-                response.close()
+                createIssueOnGithub(token, formatTitle(title), formatBody(details, throwable))
             } catch (e: Exception) {
                 Log.e(TAG, "Error reporting issue", e)
             }
         }
+    }
+
+    suspend fun reportIssue(
+        title: String,
+        details: String,
+        throwable: Throwable? = null
+    ): Boolean = withContext(Dispatchers.IO) {
+        val token = resolveToken()
+        if (token.isNullOrBlank()) {
+            Log.w(TAG, "GitHub token not configured, skipping issue report")
+            return@withContext false
+        }
+        try {
+            val success = createIssueOnGithub(token, formatTitle(title), formatBody(details, throwable))
+            if (success) {
+                Log.i(TAG, "Issue created successfully")
+            }
+            success
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reporting issue", e)
+            false
+        }
+    }
+
+    private fun formatTitle(title: String): String = "[Crash] $title"
+
+    private fun formatBody(
+        details: String,
+        throwable: Throwable? = null
+    ): String {
+        val stackTrace = throwable?.let { Log.getStackTraceString(it) } ?: ""
+        val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+        return buildString {
+            appendLine("## Автоматический отчёт об ошибке")
+            appendLine()
+            appendLine("- **Версия:** ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+            appendLine("- **Время:** $dateStr")
+            appendLine()
+            appendLine("### Описание")
+            appendLine()
+            appendLine(details)
+            if (stackTrace.isNotBlank()) {
+                appendLine()
+                appendLine("### Stacktrace")
+                appendLine()
+                appendLine("```")
+                appendLine(stackTrace)
+                appendLine("```")
+            }
+        }
+    }
+
+    private fun createIssueOnGithub(token: String, issueTitle: String, body: String): Boolean {
+        val jsonBody = JSONObject().apply {
+            put("title", issueTitle)
+            put("body", body)
+        }
+
+        val request = Request.Builder()
+            .url("https://api.github.com/repos/${BuildConfig.GITHUB_REPO}/issues")
+            .header("Authorization", "Bearer $token")
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "ReceiptExpenseTracker/1.0")
+            .post(jsonBody.toString().toRequestBody(jsonMediaType))
+            .build()
+
+        val response = client.newCall(request).execute()
+        val success = response.isSuccessful
+        if (!success) {
+            Log.e(TAG, "Failed to create issue: ${response.code} ${response.body?.string()}")
+        }
+        response.close()
+        return success
     }
 
     companion object {

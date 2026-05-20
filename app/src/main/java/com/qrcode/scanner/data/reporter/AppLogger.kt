@@ -88,6 +88,26 @@ object AppLogger {
         }
     }
 
+    fun getErrorLogText(): String {
+        val file = File(logDir, LOG_FILE)
+        if (!file.exists()) return ""
+        return try {
+            val sb = StringBuilder()
+            BufferedReader(FileReader(file)).use { reader ->
+                var line = reader.readLine()
+                while (line != null) {
+                    if (line.contains(" [E] ")) {
+                        sb.appendLine(line)
+                    }
+                    line = reader.readLine()
+                }
+            }
+            sb.toString()
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
     fun clearLog() {
         try {
             File(logDir, LOG_FILE).writeText("")
