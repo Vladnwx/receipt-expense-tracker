@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.qrcode.scanner.data.reporter.AppLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,13 +27,10 @@ class PreferencesRepository @Inject constructor(
 
     fun getDefaultAccountId(): Long? {
         val id = prefs.getLong(KEY_DEFAULT_ACCOUNT_ID, -1L)
-        val result = if (id == -1L) null else id
-        AppLogger.d("Preferences", "getDefaultAccountId: $result")
-        return result
+        return if (id == -1L) null else id
     }
 
     fun setDefaultAccountId(accountId: Long?) {
-        AppLogger.i("Preferences", "setDefaultAccountId: $accountId")
         prefs.edit().apply {
             if (accountId != null) {
                 putLong(KEY_DEFAULT_ACCOUNT_ID, accountId)

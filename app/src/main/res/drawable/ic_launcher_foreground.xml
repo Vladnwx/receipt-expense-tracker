@@ -1,11 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    
-    <!-- QR Code pattern -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M24,24h18v18H24V24zM48,24h6v6h-6V24zM60,24h24v6H60V24zM24,48h6v6h-6V48zM36,48h6v6h-6V48zM48,48h6v6h-6V48zM60,48h6v6h-6V48zM78,48h6v6h-6V48zM24,60h18v18H24V60zM48,60h6v6h-6V60zM60,60h24v6H60V60zM24,78h6v6h-6V78zM36,78h6v6h-6V78zM48,78h6v6h-6V78zM60,78h6v6h-6V78zM78,78h6v6h-6V78z"/>
+        android:pathData="M34,34h8v8h-8zM46,34h8v8h-8zM58,34h8v8h-8zM34,46h8v8h-8zM58,46h8v8h-8zM34,58h8v8h-8zM46,58h8v8h-8zM58,58h8v8h-8z"/>
 </vector>

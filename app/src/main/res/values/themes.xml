@@ -1,53 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme -->
-    <style name="Theme.QRCodeScanner" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Primary brand color — deep green (finance & wealth) -->
+<resources>
+    <style name="Theme.ReceiptExpenseTracker" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryContainer">@color/primaryContainer</item>
         <item name="colorOnPrimary">@color/onPrimary</item>
-        
-        <!-- Secondary brand color — warm orange (accents) -->
         <item name="colorSecondary">@color/secondary</item>
         <item name="colorSecondaryContainer">@color/secondaryContainer</item>
         <item name="colorOnSecondary">@color/onSecondary</item>
-        
-        <!-- Tertiary — blue (info & links) -->
         <item name="colorTertiary">@color/tertiary</item>
         <item name="colorTertiaryContainer">@color/tertiaryContainer</item>
-        
-        <!-- Status bar color -->
-        <item name="android:statusBarColor">?attr/colorPrimary</item>
-        <item name="android:navigationBarColor">?attr/colorSurface</item>
-        
-        <!-- Background & surface -->
         <item name="android:colorBackground">@color/background</item>
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/on_surface</item>
-        <item name="colorSurfaceVariant">@color/surfaceVariant</item>
-        
-        <!-- Error color -->
         <item name="colorError">@color/error</item>
         <item name="colorOnError">@color/onError</item>
-        
-        <!-- Outline -->
-        <item name="colorOutline">@color/outline</item>
-        <item name="colorOutlineVariant">@color/outlineVariant</item>
-    </style>
-
-    <!-- Dialog theme for update dialog (full-screen dialog style) -->
-    <style name="Theme.QRCodeScanner.Dialog" parent="Theme.Material3.DayNight.Dialog">
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorOnPrimary">@color/onPrimary</item>
-        <item name="colorPrimaryContainer">@color/primaryContainer</item>
-        <item name="colorSecondary">@color/secondary</item>
-        <item name="android:colorBackground">@color/background</item>
-        <item name="colorSurface">@color/surface</item>
-        <item name="colorOnSurface">@color/on_surface</item>
-        <item name="colorError">@color/error</item>
-        <item name="android:windowMinWidthMajor">90%</item>
-        <item name="android:windowMinWidthMinor">90%</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:statusBarColor">@color/primary</item>
     </style>
 </resources>
