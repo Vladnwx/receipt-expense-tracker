@@ -70,7 +70,7 @@ class FnsReceiptFetcher @Inject constructor(
                         fd = qrData.fiscalDocument,
                         fp = qrData.fiscalSign,
                         n = qrData.operationType,
-                        s = qrData.sum?.let { (it * 100).toLong() },
+                        s = qrData.sum,
                         t = qrData.date,
                         token = token
                     )
@@ -80,16 +80,31 @@ class FnsReceiptFetcher @Inject constructor(
             AppLogger.d("ReceiptFetcher", "proverkacheka response code=${response.code} first=${response.first}")
 
             val code = response.code ?: return null
-            if (code != 0) {
-                val msg = when (response.data?.asJsonPrimitive?.asString) {
-                    null -> "API error code=$code"
-                    else -> response.data.asJsonPrimitive.asString
+            when (code) {
+                1 -> {
+                    // success — data received
                 }
-                AppLogger.w("ReceiptFetcher", "proverkacheka: $msg")
-                return when (code) {
-                    4 -> FetchResult.RateLimited
-                    5 -> FetchResult.NotFound
-                    else -> FetchResult.Error(msg)
+                0 -> {
+                    val msg = response.data?.asJsonPrimitive?.asString ?: "чек некорректен"
+                    AppLogger.w("ReceiptFetcher", "proverkacheka: $msg")
+                    return FetchResult.NotFound
+                }
+                2 -> {
+                    AppLogger.w("ReceiptFetcher", "proverkacheka: данные пока не получены")
+                    return FetchResult.NotFound
+                }
+                3, 4 -> {
+                    AppLogger.w("ReceiptFetcher", "proverkacheka: rate limited (code=$code)")
+                    return FetchResult.RateLimited
+                }
+                5 -> {
+                    val msg = response.data?.asJsonPrimitive?.asString ?: "прочее (данные не получены)"
+                    AppLogger.w("ReceiptFetcher", "proverkacheka: $msg")
+                    return FetchResult.NotFound
+                }
+                else -> {
+                    AppLogger.w("ReceiptFetcher", "proverkacheka: unknown API code=$code")
+                    return FetchResult.Error("API error code=$code")
                 }
             }
 

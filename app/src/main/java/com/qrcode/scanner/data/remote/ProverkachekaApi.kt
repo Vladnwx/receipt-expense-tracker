@@ -9,7 +9,7 @@ data class ProverkachekaRequest(
     val fd: String,
     val fp: String,
     val n: Int = 1,
-    val s: Long? = null,
+    val s: Double? = null,
     val t: String? = null,
     val token: String? = null,
     val qr: Int = 1
