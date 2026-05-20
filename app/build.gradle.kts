@@ -18,11 +18,11 @@ val commitCount by lazy {
 }
 
 android {
-    namespace = "com.qrcode.scanner"
+    namespace = "com.vladnwx.receiptexpensetracker"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.qrcode.scanner"
+        applicationId = "com.vladnwx.receiptexpensetracker"
         minSdk = 24
         targetSdk = 35
         versionCode = commitCount
