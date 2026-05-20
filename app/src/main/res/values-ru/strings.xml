@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Receipt Expense Tracker</string>
+    <string name="app_expense">Расходы</string>
+    <string name="app_income">Доходы</string>
+    <string name="app_transfer">Перевод</string>
+    <string name="app_debts">Долги</string>
+    <string name="app_reports">Отчёты</string>
+    <string name="app_sync">Синхронизация</string>
+    <string name="app_scan">Скан QR</string>
+    <string name="app_settings">Настройки</string>
+    <string name="app_github">GitHub</string>
+    <string name="coming_soon">Скоро будет</string>
+    <string name="back">Назад</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="delete">Удалить</string>
+</resources>
