@@ -61,9 +61,18 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
+        val pkToken = tokenRepository.getToken()
+        var ghToken = tokenRepository.getGitHubIssuesToken()
+        if (ghToken.isNullOrBlank()) {
+            val fromBuildConfig = BuildConfig.GITHUB_ISSUES_TOKEN
+            if (fromBuildConfig.isNotBlank()) {
+                tokenRepository.saveGitHubIssuesToken(fromBuildConfig)
+                ghToken = fromBuildConfig
+            }
+        }
         _uiState.value = _uiState.value.copy(
-            proverkachekaToken = tokenRepository.getToken() ?: "",
-            githubIssuesToken = tokenRepository.getGitHubIssuesToken() ?: "",
+            proverkachekaToken = pkToken ?: "",
+            githubIssuesToken = ghToken ?: "",
             defaultAccountId = preferencesRepository.getDefaultAccountId()
         )
         loadAccounts()
