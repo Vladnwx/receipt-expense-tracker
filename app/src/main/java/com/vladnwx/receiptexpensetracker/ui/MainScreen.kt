@@ -1,6 +1,8 @@
 package com.vladnwx.receiptexpensetracker.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -15,7 +17,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -66,11 +67,21 @@ fun MainScreen() {
             TopAppBar(
                 title = { Text(msg(R.string.app_name)) },
                 actions = {
-                    TextButton(onClick = { selectedTab = tabs.size }) {
-                        Text(msg(R.string.app_settings))
-                    }
-                    TextButton(onClick = { showAboutDialog = true }) {
-                        Text(msg(R.string.app_github))
+                    Row {
+                        Text(
+                            text = msg(R.string.app_settings),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier
+                                .clickable { selectedTab = tabs.size }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                        Text(
+                            text = msg(R.string.app_github),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier
+                                .clickable { showAboutDialog = true }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -134,7 +145,10 @@ fun MainScreen() {
             title = { Text(msg(R.string.app_name)) },
             text = { Text("https://github.com/Vladnwx/receipt-expense-tracker") },
             confirmButton = {
-                TextButton(onClick = { showAboutDialog = false }) { Text("OK") }
+                Text(
+                    text = "OK",
+                    modifier = Modifier.clickable { showAboutDialog = false }.padding(12.dp)
+                )
             }
         )
     }
