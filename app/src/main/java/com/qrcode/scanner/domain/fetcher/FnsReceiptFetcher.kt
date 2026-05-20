@@ -9,6 +9,8 @@ import com.qrcode.scanner.data.remote.ProverkachekaRequest
 import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.data.repository.TokenRepository
 import com.qrcode.scanner.domain.parser.FnsQrData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -61,17 +63,19 @@ class FnsReceiptFetcher @Inject constructor(
             }
             AppLogger.d("ReceiptFetcher", "calling proverkacheka fn=${qrData.fiscalNumber} fd=${qrData.fiscalDocument}")
 
-            val response = proverkachekaApi.getCheckInfo(
-                ProverkachekaRequest(
-                    fn = qrData.fiscalNumber,
-                    fd = qrData.fiscalDocument,
-                    fp = qrData.fiscalSign,
-                    n = qrData.operationType,
-                    s = qrData.sum?.let { (it * 100).toLong() },
-                    t = qrData.date,
-                    token = token
+            val response = withContext(Dispatchers.IO) {
+                proverkachekaApi.getCheckInfo(
+                    ProverkachekaRequest(
+                        fn = qrData.fiscalNumber,
+                        fd = qrData.fiscalDocument,
+                        fp = qrData.fiscalSign,
+                        n = qrData.operationType,
+                        s = qrData.sum?.let { (it * 100).toLong() },
+                        t = qrData.date,
+                        token = token
+                    )
                 )
-            )
+            }
 
             AppLogger.d("ReceiptFetcher", "proverkacheka response code=${response.code} first=${response.first}")
 
@@ -102,6 +106,9 @@ class FnsReceiptFetcher @Inject constructor(
 
             AppLogger.i("ReceiptFetcher", "proverkacheka success: ${json.items.size} items, totalSum=${json.totalSum}, place=${json.retailPlace}")
             FetchResult.Success(mapPkToFetched(json))
+        } catch (e: ClassCastException) {
+            AppLogger.w("ReceiptFetcher", "proverkacheka: CameraX ClassCastException (ignored), will retry")
+            null
         } catch (e: Exception) {
             AppLogger.e("ReceiptFetcher", "proverkacheka request failed", e)
             null

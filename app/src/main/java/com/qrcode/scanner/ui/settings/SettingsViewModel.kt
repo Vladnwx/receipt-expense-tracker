@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.qrcode.scanner.data.local.entity.AccountEntity
 import com.qrcode.scanner.BuildConfig
 import com.qrcode.scanner.data.reporter.AppLogger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.qrcode.scanner.data.reporter.GitHubIssueReporter
 import com.qrcode.scanner.data.repository.AccountRepository
 import com.qrcode.scanner.data.repository.AppUpdateRepository
@@ -169,36 +171,23 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(status = UpdateStatus.Checking, message = "Проверка обновлений…")
             try {
-                val apiUrl = "https://api.github.com/repos/Vladnwx/receipt-expense-tracker/releases/latest"
                 AppLogger.d("SettingsVM", "calling checkForUpdate")
-                val info = updateRepository.checkForUpdate()
-                AppLogger.i("SettingsVM", "checkForUpdate: available=${info.isAvailable} latest=${info.latestVersion} current=${info.currentVersion}")
-                val current = info.currentVersion ?: "неизвестно"
-                val latest = info.latestVersion ?: "неизвестно"
-                val detailMsg = buildString {
-                    append("Текущая: $current, последняя: $latest")
-                    if (info.isAvailable && !info.downloadUrl.isNullOrBlank()) {
-                        append(" — ДА, обновление доступно!")
-                    } else if (info.isAvailable) {
-                        append(" — версия новее, но APK не найден в релизе")
-                    } else {
-                        append(" — версия актуальна")
-                    }
-                    append("\nРелиз: $apiUrl")
+                val info = withContext(Dispatchers.IO) {
+                    updateRepository.checkForUpdate()
                 }
-                if (info.isAvailable && !info.downloadUrl.isNullOrBlank()) {
+                handleUpdateResult(info)
+            } catch (e: ClassCastException) {
+                AppLogger.w("SettingsVM", "checkUpdate: CameraX ClassCastException, retrying on IO")
+                try {
+                    val info = withContext(Dispatchers.IO) {
+                        updateRepository.checkForUpdate()
+                    }
+                    handleUpdateResult(info)
+                } catch (e2: Exception) {
+                    AppLogger.e("SettingsVM", "checkUpdate retry failed", e2)
                     _uiState.value = _uiState.value.copy(
-                        status = UpdateStatus.Available,
-                        message = detailMsg,
-                        latestVersion = info.latestVersion,
-                        downloadUrl = info.downloadUrl,
-                        releaseNotes = info.releaseNotes,
-                        isMandatory = info.isMandatory
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        status = UpdateStatus.UpToDate,
-                        message = detailMsg
+                        status = UpdateStatus.Error,
+                        message = "Ошибка проверки: ${e2.localizedMessage ?: "неизвестная"}"
                     )
                 }
             } catch (e: Exception) {
@@ -233,5 +222,37 @@ class SettingsViewModel @Inject constructor(
 
     fun consumeMessage() {
         _uiState.value = _uiState.value.copy(status = UpdateStatus.Idle, message = null)
+    }
+
+    private fun handleUpdateResult(info: com.qrcode.scanner.domain.update.AppUpdateChecker.UpdateResult) {
+        val apiUrl = "https://api.github.com/repos/Vladnwx/receipt-expense-tracker/releases/latest"
+        val current = info.currentVersion ?: "неизвестно"
+        val latest = info.latestVersion ?: "неизвестно"
+        val detailMsg = buildString {
+            append("Текущая: $current, последняя: $latest")
+            if (info.isAvailable && !info.downloadUrl.isNullOrBlank()) {
+                append(" — ДА, обновление доступно!")
+            } else if (info.isAvailable) {
+                append(" — версия новее, но APK не найден в релизе")
+            } else {
+                append(" — версия актуальна")
+            }
+            append("\nРелиз: $apiUrl")
+        }
+        if (info.isAvailable && !info.downloadUrl.isNullOrBlank()) {
+            _uiState.value = _uiState.value.copy(
+                status = UpdateStatus.Available,
+                message = detailMsg,
+                latestVersion = info.latestVersion,
+                downloadUrl = info.downloadUrl,
+                releaseNotes = info.releaseNotes,
+                isMandatory = info.isMandatory
+            )
+        } else {
+            _uiState.value = _uiState.value.copy(
+                status = UpdateStatus.UpToDate,
+                message = detailMsg
+            )
+        }
     }
 }
