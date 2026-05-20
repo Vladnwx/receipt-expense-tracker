@@ -12,9 +12,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -24,85 +21,146 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vladnwx.receiptexpensetracker.R
-import kotlinx.coroutines.launch
+import com.vladnwx.receiptexpensetracker.ui.accounts.AccountsScreen
+import com.vladnwx.receiptexpensetracker.ui.advances.AdvancesScreen
+import com.vladnwx.receiptexpensetracker.ui.categories.CategoriesScreen
+import com.vladnwx.receiptexpensetracker.ui.debts.DebtsScreen
+import com.vladnwx.receiptexpensetracker.ui.events.EventsScreen
+import com.vladnwx.receiptexpensetracker.ui.expense.ExpenseScreen
+import com.vladnwx.receiptexpensetracker.ui.history.HistoryScreen
+import com.vladnwx.receiptexpensetracker.ui.income.IncomeScreen
+import com.vladnwx.receiptexpensetracker.ui.reports.ReportsScreen
+import com.vladnwx.receiptexpensetracker.ui.scan.ScanScreen
+import com.vladnwx.receiptexpensetracker.ui.settings.SettingsScreen
+import com.vladnwx.receiptexpensetracker.ui.sync.SyncScreen
+import com.vladnwx.receiptexpensetracker.ui.transfer.TransferScreen
 
-private data class Tab(val label: String, val screen: AppScreen)
-
-enum class AppScreen {
-    EXPENSE, INCOME, TRANSFER, DEBTS, REPORTS, SYNC, SCAN, SETTINGS
+enum class Tab(val labelRes: Int) {
+    EXPENSE(R.string.app_expense),
+    INCOME(R.string.app_income),
+    TRANSFER(R.string.app_transfer),
+    DEBTS(R.string.app_debts),
+    REPORTS(R.string.app_reports),
+    ADVANCES(R.string.app_advances),
+    EVENTS(R.string.app_events),
+    SYNC(R.string.app_sync),
+    SCAN(R.string.app_scan),
+    ACCOUNTS(R.string.app_accounts),
 }
+
+enum class SubScreen { HISTORY, SETTINGS, CATEGORIES }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    var subScreen by remember { mutableStateOf<SubScreen?>(null) }
     var showAboutDialog by remember { mutableStateOf(false) }
 
     fun msg(id: Int) = context.getString(id)
 
-    val tabs = listOf(
-        Tab(msg(R.string.app_expense), AppScreen.EXPENSE),
-        Tab(msg(R.string.app_income), AppScreen.INCOME),
-        Tab(msg(R.string.app_transfer), AppScreen.TRANSFER),
-        Tab(msg(R.string.app_debts), AppScreen.DEBTS),
-        Tab(msg(R.string.app_reports), AppScreen.REPORTS),
-        Tab(msg(R.string.app_sync), AppScreen.SYNC),
-        Tab(msg(R.string.app_scan), AppScreen.SCAN),
-    )
+    val tabs = Tab.entries
+
+    val content: @Composable () -> Unit = when (subScreen) {
+        SubScreen.HISTORY -> { { HistoryScreen() } }
+        SubScreen.SETTINGS -> { { SettingsScreen() } }
+        SubScreen.CATEGORIES -> { { CategoriesScreen() } }
+        null -> {
+            {
+                when (tabs[selectedTab]) {
+                    Tab.EXPENSE -> ExpenseScreen()
+                    Tab.INCOME -> IncomeScreen()
+                    Tab.TRANSFER -> TransferScreen()
+                    Tab.DEBTS -> DebtsScreen()
+                    Tab.REPORTS -> ReportsScreen()
+                    Tab.ADVANCES -> AdvancesScreen()
+                    Tab.EVENTS -> EventsScreen()
+                    Tab.SYNC -> SyncScreen()
+                    Tab.SCAN -> ScanScreen()
+                    Tab.ACCOUNTS -> AccountsScreen()
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(msg(R.string.app_name)) },
-                actions = {
-                    Row {
+            if (subScreen != null) {
+                TopAppBar(
+                    title = {
                         Text(
-                            text = msg(R.string.app_settings),
+                            when (subScreen) {
+                                SubScreen.HISTORY -> msg(R.string.app_history)
+                                SubScreen.SETTINGS -> msg(R.string.app_settings)
+                                SubScreen.CATEGORIES -> msg(R.string.category)
+                                null -> ""
+                            }
+                        )
+                    },
+                    navigationIcon = {
+                        Text(
+                            text = "< ${msg(R.string.back)}",
                             color = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier
-                                .clickable { selectedTab = tabs.size }
+                                .clickable { subScreen = null }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         )
-                        Text(
-                            text = msg(R.string.app_github),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier
-                                .clickable { showAboutDialog = true }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+            } else {
+                TopAppBar(
+                    title = { Text(msg(R.string.app_name)) },
+                    actions = {
+                        Row {
+                            Text(
+                                text = msg(R.string.app_history),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .clickable { subScreen = SubScreen.HISTORY }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                            Text(
+                                text = msg(R.string.app_settings),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .clickable { subScreen = SubScreen.SETTINGS }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                            Text(
+                                text = msg(R.string.app_github),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .clickable { showAboutDialog = true }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+            }
+        }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (selectedTab == tabs.size) {
-                FeaturePlaceholder(
-                    title = msg(R.string.app_settings),
-                    message = msg(R.string.coming_soon)
-                )
-            } else {
+            if (subScreen == null) {
                 ScrollableTabRow(
                     selectedTabIndex = selectedTab,
                     edgePadding = 8.dp,
@@ -111,18 +169,10 @@ fun MainScreen() {
                     tabs.forEachIndexed { index, tab ->
                         Tab(
                             selected = selectedTab == index,
-                            onClick = {
-                                selectedTab = index
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        message = msg(R.string.coming_soon),
-                                        duration = SnackbarDuration.Short
-                                    )
-                                }
-                            },
+                            onClick = { selectedTab = index },
                             text = {
                                 Text(
-                                    text = tab.label,
+                                    text = msg(tab.labelRes),
                                     fontWeight = if (selectedTab == index)
                                         FontWeight.Bold else FontWeight.Normal
                                 )
@@ -130,10 +180,19 @@ fun MainScreen() {
                         )
                     }
                 }
+            }
 
-                FeaturePlaceholder(
-                    title = tabs[selectedTab].label,
-                    message = msg(R.string.coming_soon)
+            content()
+
+            if (subScreen == null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "v1.0 — github.com/Vladnwx/receipt-expense-tracker",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 8.dp)
                 )
             }
         }
@@ -147,28 +206,11 @@ fun MainScreen() {
             confirmButton = {
                 Text(
                     text = "OK",
-                    modifier = Modifier.clickable { showAboutDialog = false }.padding(12.dp)
+                    modifier = Modifier
+                        .clickable { showAboutDialog = false }
+                        .padding(12.dp)
                 )
             }
         )
-    }
-}
-
-@Composable
-private fun FeaturePlaceholder(title: String, message: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = message, style = MaterialTheme.typography.bodyLarge)
     }
 }

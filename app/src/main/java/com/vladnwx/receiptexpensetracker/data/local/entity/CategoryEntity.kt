@@ -8,7 +8,9 @@ data class CategoryEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
-    val icon: String? = null,
+    val parentId: Long? = null,
     val color: Int? = null,
-    val isPredefined: Boolean = false
+    val isPredefined: Boolean = false,
+    val isFamilyDefault: Boolean = false,
+    val sortOrder: Int = 0
 )
