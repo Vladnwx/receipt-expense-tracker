@@ -108,7 +108,8 @@ class FnsReceiptFetcher @Inject constructor(
                 }
             }
 
-            val dataObj = response.data?.asJsonObject ?: run {
+            val dataObj = runCatching { response.data?.asJsonObject }.getOrNull()
+            if (dataObj == null) {
                 AppLogger.w("ReceiptFetcher", "proverkacheka: response data is not an object")
                 return null
             }

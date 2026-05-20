@@ -67,7 +67,7 @@ class FnsReceiptParser @Inject constructor() {
     }
 
     private fun extractParam(input: String, key: String): String? {
-        val regex = Regex("[?&]$key=([^&]+)")
+        val regex = Regex("(?:^|[?&])$key=([^&]+)")
         return regex.find(input)?.groupValues?.getOrNull(1)
     }
 
