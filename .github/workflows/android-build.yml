@@ -27,5 +27,14 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Write GitHub Issues token to gradle.properties
+        run: |
+          if [ -n "${{ secrets.GITHUB_ISSUES_TOKEN }}" ]; then
+            echo "githubIssuesToken=${{ secrets.GITHUB_ISSUES_TOKEN }}" >> gradle.properties
+            echo "🔑 GitHub Issues token injected from secrets"
+          else
+            echo "⚠️ GITHUB_ISSUES_TOKEN secret not set — crash reports disabled in this build"
+          fi
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
