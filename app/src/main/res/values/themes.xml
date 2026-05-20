@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme -->
-    <style name="Theme.QRCodeScanner" parent="Theme.Material3.DayNight">
+    <style name="Theme.QRCodeScanner" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color — deep green (finance & wealth) -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryContainer">@color/primaryContainer</item>

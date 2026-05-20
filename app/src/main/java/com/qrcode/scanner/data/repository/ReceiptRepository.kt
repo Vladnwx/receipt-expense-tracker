@@ -126,7 +126,9 @@ class ReceiptRepository @Inject constructor(
         for (receipt in unchecked) {
             when (fetchAndUpdate(receipt.id)) {
                 is FetchReceiptResult.Success -> checked++
-                else -> {}
+                is FetchReceiptResult.RateLimited -> AppLogger.w("ReceiptRepo", "checkUnchecked: rate limited on #${receipt.id}")
+                is FetchReceiptResult.Unauthorized -> AppLogger.w("ReceiptRepo", "checkUnchecked: unauthorized on #${receipt.id}")
+                else -> AppLogger.w("ReceiptRepo", "checkUnchecked: failed on #${receipt.id}")
             }
         }
         return checked
@@ -153,7 +155,10 @@ class ReceiptRepository @Inject constructor(
     }
 
     suspend fun deleteReceipt(receipt: ReceiptEntity) {
-        itemDao.getByReceiptId(receipt.id).forEach { itemDao.updateCategory(it.id, null) }
+        expenseRepository.deleteByReceiptId(receipt.id)
+        itemDao.deleteByReceiptId(receipt.id)
+        receiptDao.deleteById(receipt.id)
+        rawDao.deleteById(receipt.rawId)
     }
 
     private suspend fun saveItems(
@@ -169,8 +174,8 @@ class ReceiptRepository @Inject constructor(
                 amount = item.sum
             )
         }
-        itemDao.insertAll(entities)
-        return entities
+        val ids = itemDao.insertAll(entities)
+        return entities.zip(ids) { entity, id -> entity.copy(id = id) }
     }
 
     private fun parseDate(dateTime: String?): Long? {

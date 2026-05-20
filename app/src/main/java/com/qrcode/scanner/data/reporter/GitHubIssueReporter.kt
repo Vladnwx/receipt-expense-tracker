@@ -49,7 +49,7 @@ class GitHubIssueReporter @Inject constructor(
         AppLogger.e("GitHubIssueReporter", "$title: $details", throwable)
         val token = resolveToken()
         if (token.isNullOrBlank()) {
-            Log.w(TAG, "GitHub token not configured, skipping issue report")
+            AppLogger.w(TAG, "GitHub token not configured, skipping issue report")
             return
         }
 
@@ -57,7 +57,7 @@ class GitHubIssueReporter @Inject constructor(
             try {
                 createIssueOnGithub(token, formatTitle(title), formatBody(details, throwable))
             } catch (e: Exception) {
-                Log.e(TAG, "Error reporting issue", e)
+                AppLogger.e(TAG, "Error reporting issue", e)
             }
         }
     }
@@ -69,17 +69,17 @@ class GitHubIssueReporter @Inject constructor(
     ): Boolean = withContext(Dispatchers.IO) {
         val token = resolveToken()
         if (token.isNullOrBlank()) {
-            Log.w(TAG, "GitHub token not configured, skipping issue report")
+            AppLogger.w(TAG, "GitHub token not configured, skipping issue report")
             return@withContext false
         }
         try {
             val success = createIssueOnGithub(token, formatTitle(title), formatBody(details, throwable))
             if (success) {
-                Log.i(TAG, "Issue created successfully")
+                AppLogger.i(TAG, "Issue created successfully")
             }
             success
         } catch (e: Exception) {
-            Log.e(TAG, "Error reporting issue", e)
+            AppLogger.e(TAG, "Error reporting issue", e)
             false
         }
     }
@@ -129,7 +129,7 @@ class GitHubIssueReporter @Inject constructor(
         val response = client.newCall(request).execute()
         val success = response.isSuccessful
         if (!success) {
-            Log.e(TAG, "Failed to create issue: ${response.code} ${response.body?.string()}")
+            AppLogger.e(TAG, "Failed to create issue: ${response.code} ${response.body?.string()}")
         }
         response.close()
         return success

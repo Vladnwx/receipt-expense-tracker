@@ -28,4 +28,7 @@ interface ReceiptDao {
 
     @Query("SELECT * FROM receipts WHERE status != 'Checked' ORDER BY date DESC")
     suspend fun getUnchecked(): List<ReceiptEntity>
+
+    @Query("DELETE FROM receipts WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

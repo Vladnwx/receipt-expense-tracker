@@ -5,6 +5,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.NavigationUI
+import com.qrcode.scanner.data.reporter.AppLogger
 import com.qrcode.scanner.data.repository.AppUpdateRepository
 import com.qrcode.scanner.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -30,7 +31,7 @@ class MainActivity : AppCompatActivity() {
 
             NavigationUI.setupWithNavController(binding.bottomNavigation, navController)
         } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "onCreate failed", e)
+            AppLogger.e("MainActivity", "onCreate failed", e)
             val tv = TextView(this).apply {
                 text = "Ошибка: ${e.localizedMessage}"
                 setTextColor(0xFFFF0000.toInt())

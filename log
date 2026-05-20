@@ -1,0 +1,61 @@
+2026-05-20 14:54:57.755 [I] AppLogger: Log cleared 2026-05-20 14:54:59.353 
+[I] SettingsVM: checkUpdate started 2026-05-20 14:54:59.354 [D] SettingsVM: 
+calling checkForUpdate 2026-05-20 14:54:59.534 [E] SettingsVM: checkUpdate 
+failed java.lang.ClassCastException
+	at g4.c.a(SourceFile:79) at g4.b.l(SourceFile:12) at 
+	L4.a.n(SourceFile:9) at d5.D.run(SourceFile:115) at 
+	android.os.Handler.handleCallback(Handler.java:995) at 
+	android.os.Handler.dispatchMessage(Handler.java:103) at 
+	android.os.Looper.loopOnce(Looper.java:273) at 
+	android.os.Looper.loop(Looper.java:363) at 
+	android.app.ActivityThread.main(ActivityThread.java:10060) at 
+	java.lang.reflect.Method.invoke(Native Method) at 
+	com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:632) 
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:975)
+2026-05-20 14:55:22.233 [I] Scanner: QR detected: 
+t=20260428T1038&s=114.00&fn=7380440902870903&i=9457&fp=2065699391&n=1... 
+2026-05-20 14:55:22.236 [I] Scanner: QR parsed: fn=7380440902870903 fd=9457 
+fp=2065699391 sum=114.0 2026-05-20 14:55:22.240 [D] Scanner: Saving raw 
+data and creating receipt... 2026-05-20 14:55:22.244 [I] ReceiptRepo: 
+createReceiptFromQr rawId=3 fn=7380440902870903 2026-05-20 14:55:22.245 [I] 
+Scanner: Receipt #3 created (Pending), launching fetch 2026-05-20 
+14:55:22.246 [I] Scanner: launchFetch receiptId=3 2026-05-20 14:55:22.247 
+[D] Preferences: getDefaultAccountId: null 2026-05-20 14:55:22.248 [D] 
+Scanner: Fetching receipt #3, accountId=null 2026-05-20 14:55:22.248 [I] 
+ReceiptRepo: fetchAndUpdate receiptId=3 accountId=null 2026-05-20 
+14:55:22.251 [I] ReceiptFetcher: fetch fn=7380440902870903 fd=9457 
+fp=2065699391 2026-05-20 14:55:22.251 [D] ReceiptFetcher: calling 
+proverkacheka fn=7380440902870903 fd=9457 2026-05-20 14:55:22.850 [E] 
+ReceiptFetcher: proverkacheka request failed java.lang.ClassCastException
+	at j4.g.b(SourceFile:169) at j4.f.l(SourceFile:13) at 
+	L4.a.n(SourceFile:9) at d5.D.run(SourceFile:115) at 
+	android.os.Handler.handleCallback(Handler.java:995) at 
+	android.os.Handler.dispatchMessage(Handler.java:103) at 
+	android.os.Looper.loopOnce(Looper.java:273) at 
+	android.os.Looper.loop(Looper.java:363) at 
+	android.app.ActivityThread.main(ActivityThread.java:10060) at 
+	java.lang.reflect.Method.invoke(Native Method) at 
+	com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:632) 
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:975)
+2026-05-20 14:55:22.851 [I] ReceiptFetcher: fetch done in 600ms: null 
+2026-05-20 14:55:22.853 [W] Scanner: Fetch #3: not found (404) 2026-05-20 
+14:55:38.727 [I] ReceiptListVM: rescan receipt #3 2026-05-20 14:55:38.728 
+[I] ReceiptRepo: fetchAndUpdate receiptId=3 accountId=null 2026-05-20 
+14:55:38.733 [I] ReceiptFetcher: fetch fn=7380440902870903 fd=9457 
+fp=2065699391 2026-05-20 14:55:38.734 [D] ReceiptFetcher: calling 
+proverkacheka fn=7380440902870903 fd=9457 2026-05-20 14:55:38.954 [E] 
+ReceiptFetcher: proverkacheka request failed java.lang.ClassCastException
+	at j4.g.b(SourceFile:169) at j4.f.l(SourceFile:13) at 
+	L4.a.n(SourceFile:9) at d5.D.run(SourceFile:115) at 
+	android.os.Handler.handleCallback(Handler.java:995) at 
+	android.os.Handler.dispatchMessage(Handler.java:103) at 
+	android.os.Looper.loopOnce(Looper.java:273) at 
+	android.os.Looper.loop(Looper.java:363) at 
+	android.app.ActivityThread.main(ActivityThread.java:10060) at 
+	java.lang.reflect.Method.invoke(Native Method) at 
+	com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:632) 
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:975)
+2026-05-20 14:55:38.955 [I] ReceiptFetcher: fetch done in 222ms: null 
+2026-05-20 14:55:47.649 [I] SettingsVM: testCreateIssue started 2026-05-20 
+14:55:47.650 [E] GitHubIssueReporter: Тестовый issue из настроек: Создан 
+пользователем через кнопку в настройках приложения. Версия: 1.73.0

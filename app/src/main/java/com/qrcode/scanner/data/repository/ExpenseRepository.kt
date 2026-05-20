@@ -23,6 +23,10 @@ class ExpenseRepository @Inject constructor(
         expenseDao.getTotalByCategory(categoryId) ?: 0.0
     suspend fun save(entity: ExpenseEntity): Long = expenseDao.insert(entity)
 
+    suspend fun deleteByReceiptId(receiptId: Long) {
+        expenseDao.deleteByReceiptId(receiptId)
+    }
+
     suspend fun createFromReceiptItems(
         receiptId: Long,
         items: List<com.qrcode.scanner.data.local.entity.ReceiptItemEntity>,

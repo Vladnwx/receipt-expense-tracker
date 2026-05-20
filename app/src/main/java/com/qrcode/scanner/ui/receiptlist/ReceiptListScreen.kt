@@ -98,8 +98,10 @@ fun ReceiptListScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(uiState.receipts, key = { it.id }) { receipt ->
                         ReceiptCard(

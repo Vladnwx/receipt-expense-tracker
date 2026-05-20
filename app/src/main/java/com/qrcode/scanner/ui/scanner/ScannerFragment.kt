@@ -29,6 +29,7 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.qrcode.scanner.R
+import com.qrcode.scanner.data.reporter.AppLogger
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -105,7 +106,7 @@ class ScannerFragment : Fragment() {
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("ScannerFrag", "ComposeView creation failed", e)
+            AppLogger.e("ScannerFrag", "ComposeView creation failed", e)
             inflater.inflate(android.R.layout.simple_list_item_1, container, false).apply {
                 findViewById<android.widget.TextView>(android.R.id.text1).text =
                     "Ошибка: ${e.localizedMessage}"
@@ -153,7 +154,7 @@ class ScannerFragment : Fragment() {
                 cameraProvider = cameraProviderFuture.get()
                 bindCamera()
             } catch (e: Exception) {
-                android.util.Log.e("ScannerFrag", "Camera start error", e)
+                AppLogger.e("ScannerFrag", "Camera start error", e)
             }
         }, ContextCompat.getMainExecutor(requireContext()))
     }
@@ -189,7 +190,7 @@ class ScannerFragment : Fragment() {
                 imageAnalysis
             )
         } catch (e: Exception) {
-            android.util.Log.e("ScannerFrag", "Bind camera error", e)
+            AppLogger.e("ScannerFrag", "Bind camera error", e)
         }
     }
 

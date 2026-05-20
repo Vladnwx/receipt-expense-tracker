@@ -18,4 +18,7 @@ interface ReceiptRawDao {
 
     @Query("UPDATE receipt_raw SET isParsed = 1 WHERE id = :id")
     suspend fun markParsed(id: Long)
+
+    @Query("DELETE FROM receipt_raw WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

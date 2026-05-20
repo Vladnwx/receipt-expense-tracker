@@ -30,4 +30,7 @@ interface ExpenseDao {
 
     @Query("SELECT SUM(amount) FROM expenses WHERE categoryId = :categoryId")
     suspend fun getTotalByCategory(categoryId: Long): Double?
+
+    @Query("DELETE FROM expenses WHERE receiptId = :receiptId")
+    suspend fun deleteByReceiptId(receiptId: Long)
 }

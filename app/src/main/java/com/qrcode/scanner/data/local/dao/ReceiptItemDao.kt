@@ -11,11 +11,14 @@ interface ReceiptItemDao {
     suspend fun insert(entity: ReceiptItemEntity): Long
 
     @Insert
-    suspend fun insertAll(entities: List<ReceiptItemEntity>)
+    suspend fun insertAll(entities: List<ReceiptItemEntity>): List<Long>
 
     @Query("SELECT * FROM receipt_items WHERE receiptId = :receiptId")
     suspend fun getByReceiptId(receiptId: Long): List<ReceiptItemEntity>
 
     @Query("UPDATE receipt_items SET categoryId = :categoryId WHERE id = :id")
     suspend fun updateCategory(id: Long, categoryId: Long?)
+
+    @Query("DELETE FROM receipt_items WHERE receiptId = :receiptId")
+    suspend fun deleteByReceiptId(receiptId: Long)
 }
