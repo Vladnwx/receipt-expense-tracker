@@ -178,6 +178,26 @@ class ReceiptRepository @Inject constructor(
         return entities.zip(ids) { entity, id -> entity.copy(id = id) }
     }
 
+    suspend fun saveFetchedData(
+        receipt: ReceiptEntity,
+        fetched: com.qrcode.scanner.domain.fetcher.FetchedReceipt
+    ) {
+        val updated = receipt.copy(
+            amount = fetched.totalSum,
+            date = parseDate(fetched.dateTime) ?: receipt.date,
+            retailerName = fetched.retailPlace,
+            retailerInn = fetched.retailerInn,
+            status = ReceiptStatus.Checked.name
+        )
+        receiptDao.update(updated)
+        saveItems(receipt.id, fetched)
+        val savedItems = getItemsByReceiptId(receipt.id)
+        AppLogger.i("ReceiptRepo", "Creating ${savedItems.size} expenses for receipt #${receipt.id} from FNS")
+        expenseRepository.createFromReceiptItems(receipt.id, savedItems, null)
+        rawDao.markParsed(receipt.rawId)
+        AppLogger.i("ReceiptRepo", "FNS receipt #${receipt.id} saved: Checked, ${fetched.items.size} items")
+    }
+
     private fun parseDate(dateTime: String?): Long? {
         if (dateTime == null) return null
         return try {

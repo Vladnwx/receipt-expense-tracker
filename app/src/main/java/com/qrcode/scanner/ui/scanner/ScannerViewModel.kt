@@ -15,6 +15,7 @@ import com.qrcode.scanner.data.repository.FetchReceiptResult
 import com.qrcode.scanner.data.repository.PreferencesRepository
 import com.qrcode.scanner.data.repository.ReceiptRepository
 import com.qrcode.scanner.domain.parser.FnsReceiptParser
+import com.qrcode.scanner.domain.parser.FnsShareParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
@@ -37,6 +38,7 @@ class ScannerViewModel @Inject constructor(
     private val receiptRepository: ReceiptRepository,
     private val preferencesRepository: PreferencesRepository,
     private val parser: FnsReceiptParser,
+    private val fnsShareParser: FnsShareParser,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -219,6 +221,54 @@ class ScannerViewModel @Inject constructor(
         _isScanning.value = _isScanning.value != true
         if (_isScanning.value == true) {
             _lastQrDetectedMs.value = System.currentTimeMillis()
+        }
+    }
+
+    fun onFnsJsonReceived(json: String) {
+        if (_isProcessing.value == true) return
+        AppLogger.i("Scanner", "FNS JSON received: ${json.take(100)}...")
+        viewModelScope.launch {
+            _isProcessing.value = true
+            try {
+                val response = fnsShareParser.parse(json)
+                if (response == null) {
+                    AppLogger.w("Scanner", "FNS JSON parse failed")
+                    _event.value = Event(ScannerEvent.Error("Не удалось обработать JSON"))
+                    return@launch
+                }
+                val qrData = fnsShareParser.toFnsQrData(response)
+                AppLogger.i("Scanner", "FNS parsed: fn=${qrData.fiscalNumber} fd=${qrData.fiscalDocument}")
+
+                val existing = receiptRepository.findExistingReceipt(
+                    fn = qrData.fiscalNumber,
+                    fd = qrData.fiscalDocument,
+                    fp = qrData.fiscalSign
+                )
+                if (existing != null) {
+                    AppLogger.i("Scanner", "FNS duplicate: receipt #${existing.id}")
+                    _event.value = Event(ScannerEvent.AlreadyExists(existing.id))
+                    return@launch
+                }
+
+                val raw = receiptRepository.saveRaw(json)
+                val receipt = receiptRepository.createReceiptFromQr(raw.id, qrData)
+                if (receipt == null) {
+                    _event.value = Event(ScannerEvent.Error("Не удалось сохранить чек"))
+                    return@launch
+                }
+
+                AppLogger.i("Scanner", "FNS receipt #${receipt.id} created, updating directly")
+                _event.value = Event(ScannerEvent.Saved(receipt.id))
+
+                val fetched = fnsShareParser.toFetchedReceipt(response)
+                receiptRepository.saveFetchedData(receipt, fetched)
+                _event.value = Event(ScannerEvent.CheckSuccess)
+            } catch (e: Exception) {
+                AppLogger.e("Scanner", "FNS JSON processing failed", e)
+                _event.value = Event(ScannerEvent.Error("Ошибка обработки: ${e.localizedMessage ?: "неизвестная"}"))
+            } finally {
+                _isProcessing.value = false
+            }
         }
     }
 }

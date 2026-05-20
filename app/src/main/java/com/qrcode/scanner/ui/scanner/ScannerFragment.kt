@@ -72,6 +72,11 @@ class ScannerFragment : Fragment() {
                 viewModel.onImagePicked(uri.toString())
             }
         }
+        val sharedJson = arguments?.getString("shared_fns_json")
+        if (sharedJson != null) {
+            arguments?.remove("shared_fns_json")
+            viewModel.onFnsJsonReceived(sharedJson)
+        }
     }
 
     override fun onCreateView(
