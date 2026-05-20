@@ -2,6 +2,7 @@ package com.qrcode.scanner.di
 
 import com.qrcode.scanner.data.remote.GitHubReleaseApi
 import com.qrcode.scanner.data.remote.ProverkachekaApi
+import com.qrcode.scanner.data.repository.TokenRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,10 +43,21 @@ object NetworkModule {
     @Provides
     @Singleton
     @GitHubApi
-    fun provideGitHubRetrofit(client: OkHttpClient): Retrofit {
+    fun provideGitHubRetrofit(client: OkHttpClient, tokenRepo: TokenRepository): Retrofit {
+        val authInterceptor = Interceptor { chain ->
+            val token = tokenRepo.getGitHubIssuesToken()
+            val request = if (!token.isNullOrBlank()) {
+                chain.request().newBuilder()
+                    .header("Authorization", "Bearer $token")
+                    .build()
+            } else {
+                chain.request()
+            }
+            chain.proceed(request)
+        }
         return Retrofit.Builder()
             .baseUrl("https://api.github.com/")
-            .client(client)
+            .client(client.newBuilder().addInterceptor(authInterceptor).build())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

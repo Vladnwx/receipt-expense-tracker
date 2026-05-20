@@ -69,7 +69,8 @@ fun ScannerScreen(
     onGalleryClick: () -> Unit,
     onClear: () -> Unit,
     onPreviewViewCreated: (PreviewView) -> Unit,
-    onNavigateToReceipt: (Long) -> Unit
+    onNavigateToReceipt: (Long) -> Unit,
+    onNavigateToReceiptList: () -> Unit
 ) {
     val context = LocalContext.current
     val isScanning by viewModel.isScanning.observeAsState(true)
@@ -149,6 +150,7 @@ fun ScannerScreen(
                     message = "Данные получены, расходы добавлены",
                     duration = SnackbarDuration.Short
                 )
+                onNavigateToReceiptList()
             }
             is ScannerEvent.CheckWarning -> {
                 statusText = "Готово: счёт не указан"
@@ -156,6 +158,7 @@ fun ScannerScreen(
                     message = event.message,
                     duration = SnackbarDuration.Short
                 )
+                onNavigateToReceiptList()
             }
             is ScannerEvent.CheckError -> {
                 statusText = event.message

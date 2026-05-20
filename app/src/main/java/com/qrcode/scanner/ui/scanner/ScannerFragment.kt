@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -50,26 +51,27 @@ class ScannerFragment : Fragment() {
     private var lastQrDetectedTime = 0L
     private val qrDebounceMs = 2000L
 
-    private val requestPermissionLauncher by lazy {
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var pickImageLauncher: ActivityResultLauncher<String>
+
+    private var composeIsScanning by mutableStateOf(true)
+    private var composeTorchOn by mutableStateOf(false)
+    private var composeHasPermission by mutableStateOf(false)
+    private var composePickedImageUri by mutableStateOf<String?>(null)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) startCamera()
             else composeHasPermission = false
         }
-    }
-
-    private val pickImageLauncher by lazy {
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
                 composePickedImageUri = uri.toString()
                 viewModel.onImagePicked(uri.toString())
             }
         }
     }
-
-    private var composeIsScanning by mutableStateOf(true)
-    private var composeTorchOn by mutableStateOf(false)
-    private var composeHasPermission by mutableStateOf(false)
-    private var composePickedImageUri by mutableStateOf<String?>(null)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -95,6 +97,9 @@ class ScannerFragment : Fragment() {
                         onNavigateToReceipt = { receiptId ->
                             val bundle = Bundle().apply { putLong("receiptId", receiptId) }
                             findNavController().navigate(R.id.action_scanner_to_receiptDetail, bundle)
+                        },
+                        onNavigateToReceiptList = {
+                            findNavController().navigate(R.id.receiptListFragment)
                         }
                     )
                 }
