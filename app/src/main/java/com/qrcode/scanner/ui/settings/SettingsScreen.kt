@@ -83,14 +83,12 @@ fun SettingsScreen(
                 viewModel.consumeMessage()
             }
             UpdateStatus.Available -> {
-                uiState.message?.let { snackbarHostState.showSnackbar(it) }
                 onUpdateAvailable(
                     uiState.latestVersion ?: "",
                     uiState.downloadUrl ?: "",
                     uiState.releaseNotes ?: "",
                     uiState.isMandatory
                 )
-                viewModel.consumeMessage()
             }
             else -> {}
         }

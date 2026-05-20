@@ -51,6 +51,7 @@ class UpdateDialogFragment : DialogFragment() {
     private var downloadId: Long = -1L
     private var downloadUrl: String = ""
     private var latestVersion: String = ""
+    private var autoDownloaded = false
     private val downloadReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
@@ -100,6 +101,10 @@ class UpdateDialogFragment : DialogFragment() {
     override fun onResume() {
         super.onResume()
         viewModel.checkInstallPermission(requireContext())
+        if (!autoDownloaded && downloadUrl.isNotBlank()) {
+            autoDownloaded = true
+            startDownload()
+        }
     }
 
     override fun getTheme(): Int = R.style.Theme_QRCodeScanner_Dialog
