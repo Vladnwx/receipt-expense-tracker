@@ -42,6 +42,7 @@ data class ExpenseEntity(
     val tags: String? = null,
     val date: Long = System.currentTimeMillis(),
     val isFamilyExpense: Boolean = false,
+    val attachmentPath: String? = null,
     val eventId: Long? = null,
     val advanceReportId: Long? = null,
     val createdAt: Long = System.currentTimeMillis()

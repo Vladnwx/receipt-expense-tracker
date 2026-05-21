@@ -48,10 +48,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -68,12 +71,31 @@ import java.util.Locale
 @Composable
 fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
 
     var showCategoryDialog by remember { mutableStateOf(false) }
     var showAccountDialog by remember { mutableStateOf(false) }
     var showDateDialog by remember { mutableStateOf(false) }
     var tagInput by remember { mutableStateOf("") }
     var showFamilySheet by remember { mutableStateOf(false) }
+
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(it)
+                val fileName = "receipt_${System.currentTimeMillis()}.jpg"
+                val outputFile = java.io.File(context.filesDir, fileName)
+                inputStream?.use { input ->
+                    outputFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                viewModel.setAttachment(outputFile.absolutePath, fileName)
+            } catch (_: Exception) { }
+        }
+    }
 
     LaunchedEffect(state.saved) {
         if (state.saved) {
@@ -225,13 +247,32 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
                 )
             }
 
-            OutlinedButton(
-                onClick = { },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.AttachFile, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Прикрепить файл")
+            if (state.attachmentPath != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Check, contentDescription = null,
+                            tint = Color(0xFF4CAF50))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(state.attachmentName ?: "Файл",
+                            style = MaterialTheme.typography.bodyMedium)
+                    }
+                    TextButton(onClick = { viewModel.clearAttachment() }) {
+                        Text("Удалить", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            } else {
+                OutlinedButton(
+                    onClick = { photoPicker.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.AttachFile, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Прикрепить файл")
+                }
             }
 
             Row(

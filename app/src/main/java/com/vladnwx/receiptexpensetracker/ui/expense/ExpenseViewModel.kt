@@ -27,6 +27,8 @@ data class ExpenseFormState(
     val description: String = "",
     val tags: List<String> = emptyList(),
     val isFamilyExpense: Boolean = false,
+    val attachmentPath: String? = null,
+    val attachmentName: String? = null,
     val categories: List<CategoryEntity> = emptyList(),
     val childrenMap: Map<Long, List<CategoryEntity>> = emptyMap(),
     val accounts: List<AccountEntity> = emptyList(),
@@ -150,6 +152,14 @@ class ExpenseViewModel @Inject constructor(
         _state.value = _state.value.copy(isFamilyExpense = value)
     }
 
+    fun setAttachment(path: String, name: String) {
+        _state.value = _state.value.copy(attachmentPath = path, attachmentName = name)
+    }
+
+    fun clearAttachment() {
+        _state.value = _state.value.copy(attachmentPath = null, attachmentName = null)
+    }
+
     fun save() {
         val s = _state.value
         val amount = parseAmount(s.amountText) ?: return
@@ -168,7 +178,8 @@ class ExpenseViewModel @Inject constructor(
                 description = s.description.ifBlank { null },
                 tags = s.tags.joinToString(",").ifBlank { null },
                 date = s.dateMillis,
-                isFamilyExpense = s.isFamilyExpense
+                isFamilyExpense = s.isFamilyExpense,
+                attachmentPath = s.attachmentPath
             ))
             updateWidget()
             _state.value = _state.value.copy(saved = true)
@@ -184,8 +195,12 @@ class ExpenseViewModel @Inject constructor(
 
     fun resetForm() {
         val accounts = _state.value.accounts
+        val categories = _state.value.categories
+        val childrenMap = _state.value.childrenMap
         _state.value = ExpenseFormState(
             accounts = accounts,
+            categories = categories,
+            childrenMap = childrenMap,
             selectedAccount = accounts.firstOrNull()
         )
     }
