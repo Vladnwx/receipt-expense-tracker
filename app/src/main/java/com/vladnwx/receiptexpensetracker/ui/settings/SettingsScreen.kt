@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
@@ -40,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.vladnwx.receiptexpensetracker.BuildConfig
 import com.vladnwx.receiptexpensetracker.data.reporter.AppLogger
+import com.vladnwx.receiptexpensetracker.data.reporter.GitHubIssueReporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,6 +53,11 @@ fun SettingsScreen() {
     var fnsToken by remember { mutableStateOf(
         prefs.getString("fns_token", "") ?: ""
     )}
+    var githubToken by remember { mutableStateOf(
+        prefs.getString("github_token", "") ?: ""
+    )}
+    var issueDescription by remember { mutableStateOf("") }
+    var sendingIssue by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -81,6 +88,66 @@ fun SettingsScreen() {
                         Text("Используется для получения деталей чека по QR-коду",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("GitHub Issues", style = MaterialTheme.typography.titleMedium)
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = githubToken,
+                            onValueChange = {
+                                githubToken = it
+                                prefs.edit().putString("github_token", it).apply()
+                            },
+                            label = { Text("GitHub Personal Access Token") },
+                            placeholder = { Text("Токен для создания Issues") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = issueDescription,
+                            onValueChange = { issueDescription = it },
+                            label = { Text("Описание ошибки") },
+                            placeholder = { Text("Опишите проблему…") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3,
+                            maxLines = 6
+                        )
+                        Button(
+                            onClick = {
+                                if (githubToken.isBlank()) {
+                                    scope.launch { snackbarHostState.showSnackbar("Укажите GitHub токен") }
+                                    return@Button
+                                }
+                                if (issueDescription.isBlank()) {
+                                    scope.launch { snackbarHostState.showSnackbar("Опишите проблему") }
+                                    return@Button
+                                }
+                                scope.launch {
+                                    sendingIssue = true
+                                    val result = withContext(Dispatchers.IO) {
+                                        GitHubIssueReporter.reportError(
+                                            token = githubToken.trim(),
+                                            title = issueDescription.take(80),
+                                            details = issueDescription
+                                        )
+                                    }
+                                    sendingIssue = false
+                                    issueDescription = ""
+                                    snackbarHostState.showSnackbar(result)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !sendingIssue
+                        ) {
+                            Icon(Icons.Filled.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (sendingIssue) "Отправка…" else "Отправить Issue")
+                        }
                     }
                 }
             }
