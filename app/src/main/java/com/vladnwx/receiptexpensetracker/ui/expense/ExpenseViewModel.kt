@@ -83,7 +83,18 @@ class ExpenseViewModel @Inject constructor(
     }
 
     fun onAmountChanged(text: String) {
-        _state.value = _state.value.copy(amountText = text, error = null)
+        val s = _state.value
+        val amount = parseAmount(text)
+        if (amount != null && amount > 0 && s.quantityText.isBlank() && s.priceText.isBlank()) {
+            _state.value = s.copy(
+                amountText = text,
+                quantityText = "1",
+                priceText = text,
+                error = null
+            )
+        } else {
+            _state.value = s.copy(amountText = text, error = null)
+        }
     }
 
     fun onDateChanged(millis: Long) {
@@ -192,7 +203,11 @@ class ExpenseViewModel @Inject constructor(
         }
         val quantity = parseAmount(s.quantityText)
         val price = parseAmount(s.priceText)
-        val effectiveAmount = if (quantity != null && price != null) quantity * price else amount
+        val (finalQuantity, finalPrice, effectiveAmount) = if (quantity != null && price != null) {
+            Triple(quantity, price, quantity * price)
+        } else {
+            Triple(1.0, amount, amount)
+        }
 
         viewModelScope.launch {
             AppLogger.d("ExpenseVM", "save: type=$operationType amount=$effectiveAmount cat=${s.selectedCategory?.name} acc=${s.selectedAccount?.name}")
@@ -201,8 +216,8 @@ class ExpenseViewModel @Inject constructor(
                 categoryId = s.selectedCategory.id,
                 accountId = s.selectedAccount?.id,
                 amount = effectiveAmount,
-                quantity = quantity,
-                price = price,
+                quantity = finalQuantity,
+                price = finalPrice,
                 description = s.description.ifBlank { null },
                 tags = s.tags.joinToString(",").ifBlank { null },
                 date = s.dateMillis,

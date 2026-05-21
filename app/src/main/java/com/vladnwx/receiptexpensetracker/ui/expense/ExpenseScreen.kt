@@ -153,6 +153,7 @@ fun ExpenseScreen(isIncome: Boolean = false, sharedImageUri: android.net.Uri? = 
             OutlinedTextField(
                 value = state.amountText,
                 onValueChange = { viewModel.onAmountChanged(it) },
+                label = { Text(if (viewModel.operationType == OperationType.INCOME) "Сумма дохода" else "Сумма расхода") },
                 placeholder = { Text("0,00", fontSize = 32.sp) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
