@@ -21,7 +21,9 @@ data class TransferFormState(
     val dateMillis: Long = System.currentTimeMillis(),
     val description: String = "",
     val accounts: List<AccountEntity> = emptyList(),
-    val saved: Boolean = false
+    val saved: Boolean = false,
+    val fromBalanceText: String = "",
+    val toBalanceText: String = ""
 )
 
 @HiltViewModel
@@ -38,21 +40,50 @@ class TransferViewModel @Inject constructor(
     private fun loadAccounts() {
         viewModelScope.launch {
             val accounts = accountRepository.getAll()
-            _state.value = _state.value.copy(
+            val first = accounts.getOrNull(0)
+            val second = accounts.getOrNull(1)
+            _state.value = TransferFormState(
                 accounts = accounts,
-                fromAccount = accounts.getOrNull(0),
-                toAccount = accounts.getOrNull(1)
+                fromAccount = first,
+                toAccount = second,
+                fromBalanceText = first?.let { fmt(it.initialBalance) } ?: "",
+                toBalanceText = second?.let { fmt(it.initialBalance) } ?: ""
             )
         }
     }
 
-    fun onFromAccountSelected(acc: AccountEntity) { _state.value = _state.value.copy(fromAccount = acc) }
-    fun onToAccountSelected(acc: AccountEntity) { _state.value = _state.value.copy(toAccount = acc) }
+    fun onFromAccountSelected(acc: AccountEntity) {
+        _state.value = _state.value.copy(
+            fromAccount = acc,
+            fromBalanceText = fmt(acc.initialBalance)
+        )
+    }
+
+    fun onToAccountSelected(acc: AccountEntity) {
+        _state.value = _state.value.copy(
+            toAccount = acc,
+            toBalanceText = fmt(acc.initialBalance)
+        )
+    }
+
+    fun onFromBalanceChanged(v: String) { _state.value = _state.value.copy(fromBalanceText = v) }
+    fun onToBalanceChanged(v: String) { _state.value = _state.value.copy(toBalanceText = v) }
     fun onAmountChanged(v: String) { _state.value = _state.value.copy(amountText = v) }
     fun onCommissionChanged(v: String) { _state.value = _state.value.copy(commissionText = v) }
     fun onRateChanged(v: String) { _state.value = _state.value.copy(rateText = v) }
     fun onDateChanged(v: Long) { _state.value = _state.value.copy(dateMillis = v) }
     fun onDescriptionChanged(v: String) { _state.value = _state.value.copy(description = v) }
+
+    fun equalize() {
+        val s = _state.value
+        val fromBal = s.fromBalanceText.replace(",", ".").toDoubleOrNull() ?: return
+        val toBal = s.toBalanceText.replace(",", ".").toDoubleOrNull() ?: return
+        if (fromBal <= toBal) return
+
+        val diff = (fromBal - toBal) / 2.0
+        _state.value = s.copy(amountText = String.format("%.2f", diff)
+            .replace('.', ','))
+    }
 
     fun save() {
         val s = _state.value
@@ -81,5 +112,9 @@ class TransferViewModel @Inject constructor(
     fun reset() {
         val accounts = _state.value.accounts
         _state.value = TransferFormState(accounts = accounts)
+    }
+
+    private fun fmt(balance: Double): String {
+        return String.format("%.2f", balance).replace('.', ',')
     }
 }
