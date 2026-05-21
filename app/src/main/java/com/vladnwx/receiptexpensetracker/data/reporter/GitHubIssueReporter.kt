@@ -17,9 +17,11 @@ import java.util.concurrent.TimeUnit
 object GitHubIssueReporter {
 
     private const val TAG = "GitHubIssueReporter"
+    private const val MAX_BODY_LENGTH = 60_000
+    private const val MAX_LOG_CHUNK = 50_000
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
@@ -42,38 +44,56 @@ object GitHubIssueReporter {
                     appendLine("### Описание")
                     appendLine()
                     appendLine(details)
-                    appendLine()
-                    appendLine("### Лог приложения")
-                    appendLine()
-                    appendLine("```")
-                    appendLine(AppLogger.getLogText().take(5000))
-                    appendLine("```")
                 })
             }
 
+            val bodyStr = body.toString()
             val request = Request.Builder()
                 .url("https://api.github.com/repos/${BuildConfig.GITHUB_REPO}/issues")
                 .header("Authorization", "Bearer $token")
                 .header("Accept", "application/vnd.github.v3+json")
                 .header("User-Agent", "ReceiptExpenseTracker/1.0")
-                .post(body.toString().toRequestBody(jsonMediaType))
+                .post(bodyStr.toRequestBody(jsonMediaType))
                 .build()
 
             val response = client.newCall(request).execute()
             val responseBody = response.body?.string() ?: ""
             response.close()
 
-            if (response.isSuccessful) {
-                val issueUrl = try {
-                    JSONObject(responseBody).optString("html_url", "")
-                } catch (_: Exception) { "" }
-                "Issue создан: $issueUrl"
-            } else {
+            if (!response.isSuccessful) {
                 val errorMsg = try {
                     JSONObject(responseBody).optJSONObject("errors")?.optString("message") ?: responseBody
                 } catch (_: Exception) { responseBody }
-                "Ошибка ${response.code}: ${errorMsg.take(200)}"
+                return@withContext "Ошибка ${response.code}: ${errorMsg.take(200)}"
             }
+
+            val issueNumber = try {
+                JSONObject(responseBody).optInt("number")
+            } catch (_: Exception) { 0 }
+            val issueUrl = try {
+                JSONObject(responseBody).optString("html_url", "")
+            } catch (_: Exception) { "" }
+
+            val logText = AppLogger.getLogText()
+            if (logText.isNotBlank() && issueNumber > 0) {
+                logText.chunked(MAX_LOG_CHUNK).forEachIndexed { i, chunk ->
+                    val comment = JSONObject().apply {
+                        put("body", "**Лог (часть ${i + 1})**\n\n```\n$chunk\n```")
+                    }
+                    val commentRequest = Request.Builder()
+                        .url("https://api.github.com/repos/${BuildConfig.GITHUB_REPO}/issues/$issueNumber/comments")
+                        .header("Authorization", "Bearer $token")
+                        .header("Accept", "application/vnd.github.v3+json")
+                        .header("User-Agent", "ReceiptExpenseTracker/1.0")
+                        .post(comment.toString().toRequestBody(jsonMediaType))
+                        .build()
+                    try {
+                        client.newCall(commentRequest).execute().close()
+                    } catch (_: Exception) { }
+                }
+            }
+
+            "Issue создан: $issueUrl"
         } catch (e: Exception) {
             Log.e(TAG, "Error reporting issue", e)
             "Ошибка: ${e.localizedMessage ?: "неизвестная"}"

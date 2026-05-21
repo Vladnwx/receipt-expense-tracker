@@ -6,6 +6,7 @@ import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -37,6 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.vladnwx.receiptexpensetracker.BuildConfig
@@ -56,6 +59,7 @@ fun SettingsScreen() {
     var githubToken by remember { mutableStateOf(
         prefs.getString("github_token", "") ?: ""
     )}
+    val githubTokenSet = githubToken.isNotBlank()
     var issueDescription by remember { mutableStateOf("") }
     var sendingIssue by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -94,9 +98,19 @@ fun SettingsScreen() {
 
             item {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("GitHub Issues", style = MaterialTheme.typography.titleMedium)
+                Text("GitHub токен", style = MaterialTheme.typography.titleMedium)
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Key, contentDescription = null, modifier = Modifier.size(20.dp),
+                                tint = if (githubTokenSet) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (githubTokenSet) "Токен добавлен" else "Токен не настроен",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (githubTokenSet) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         OutlinedTextField(
                             value = githubToken,
                             onValueChange = {
@@ -108,6 +122,31 @@ fun SettingsScreen() {
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
+                        if (githubTokenSet) {
+                            OutlinedButton(
+                                onClick = {
+                                    githubToken = ""
+                                    prefs.edit().remove("github_token").apply()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Удалить токен")
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Отправить Issue", style = MaterialTheme.typography.titleMedium)
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = issueDescription,
                             onValueChange = { issueDescription = it },
@@ -119,8 +158,8 @@ fun SettingsScreen() {
                         )
                         Button(
                             onClick = {
-                                if (githubToken.isBlank()) {
-                                    scope.launch { snackbarHostState.showSnackbar("Укажите GitHub токен") }
+                                if (!githubTokenSet) {
+                                    scope.launch { snackbarHostState.showSnackbar("Сначала добавьте GitHub токен") }
                                     return@Button
                                 }
                                 if (issueDescription.isBlank()) {
