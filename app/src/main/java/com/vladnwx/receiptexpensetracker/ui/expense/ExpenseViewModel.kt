@@ -102,6 +102,17 @@ class ExpenseViewModel @Inject constructor(
         _state.value = _state.value.copy(selectedAccount = account)
     }
 
+    fun saveCategory(name: String, parentId: Long? = null) {
+        viewModelScope.launch {
+            categoryRepository.save(CategoryEntity(
+                name = name,
+                parentId = parentId,
+                isPredefined = false
+            ))
+            loadData()
+        }
+    }
+
     fun onQuantityChanged(text: String) {
         _state.value = _state.value.copy(quantityText = text, error = null)
     }

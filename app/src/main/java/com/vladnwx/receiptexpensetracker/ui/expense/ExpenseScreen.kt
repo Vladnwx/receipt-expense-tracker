@@ -19,18 +19,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowRight
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -39,8 +47,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material.icons.Icons
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,17 +57,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vladnwx.receiptexpensetracker.data.local.entity.AccountEntity
 import com.vladnwx.receiptexpensetracker.data.local.entity.CategoryEntity
@@ -361,6 +371,8 @@ fun ExpenseScreen(isIncome: Boolean = false, sharedImageUri: android.net.Uri? = 
                 viewModel.onCategorySelected(category)
                 showCategoryDialog = false
             },
+            onAddCategory = { name -> viewModel.saveCategory(name) },
+            onAddSubcategory = { name, parentId -> viewModel.saveCategory(name, parentId) },
             onDismiss = { showCategoryDialog = false }
         )
     }
@@ -428,9 +440,14 @@ private fun CategoryDialog(
     parents: List<CategoryEntity>,
     childrenMap: Map<Long, List<CategoryEntity>>,
     onSelect: (CategoryEntity) -> Unit,
+    onAddCategory: (String) -> Unit,
+    onAddSubcategory: (String, Long) -> Unit,
     onDismiss: () -> Unit
 ) {
     var expandedParentId by remember { mutableStateOf<Long?>(null) }
+    var showAddParent by remember { mutableStateOf(false) }
+    var showAddChild by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -438,22 +455,45 @@ private fun CategoryDialog(
         text = {
             Column {
                 parents.forEach { parent ->
-                    Text(
-                        text = parent.name,
-                        fontWeight = FontWeight.Bold,
+                    val hasChildren = childrenMap[parent.id].orEmpty().isNotEmpty()
+                    val isExpanded = expandedParentId == parent.id
+
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                val children = childrenMap[parent.id].orEmpty()
-                                if (children.isEmpty()) {
-                                    onSelect(parent)
-                                } else {
-                                    expandedParentId = if (expandedParentId == parent.id) null else parent.id
-                                }
-                            }
-                            .padding(vertical = 8.dp)
-                    )
-                    if (expandedParentId == parent.id) {
+                            .clickable { onSelect(parent) }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (hasChildren) {
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Filled.ArrowDropDown else Icons.Filled.ArrowRight,
+                                contentDescription = if (isExpanded) "Свернуть" else "Развернуть",
+                                modifier = Modifier
+                                    .clickable {
+                                        expandedParentId = if (isExpanded) null else parent.id
+                                    }
+                                    .size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.size(24.dp))
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = parent.name,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.Done,
+                            contentDescription = "Выбрать",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    if (isExpanded) {
                         childrenMap[parent.id]?.forEach { child ->
                             Text(
                                 text = "  ${child.name}",
@@ -464,7 +504,90 @@ private fun CategoryDialog(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        TextButton(
+                            onClick = {
+                                showAddChild = true
+                                newName = ""
+                            },
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Добавить подкатегорию", style = MaterialTheme.typography.bodySmall)
+                        }
                     }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                TextButton(
+                    onClick = {
+                        showAddParent = true
+                        newName = ""
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Добавить категорию")
+                }
+
+                if (showAddParent) {
+                    OutlinedTextField(
+                        value = newName,
+                        onValueChange = { newName = it },
+                        label = { Text("Название категории") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            if (newName.isNotBlank()) {
+                                onAddCategory(newName.trim())
+                                showAddParent = false
+                                newName = ""
+                            }
+                        })
+                    )
+                    Button(
+                        onClick = {
+                            if (newName.isNotBlank()) {
+                                onAddCategory(newName.trim())
+                                showAddParent = false
+                                newName = ""
+                            }
+                        },
+                        enabled = newName.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Сохранить") }
+                }
+
+                if (showAddChild && expandedParentId != null) {
+                    OutlinedTextField(
+                        value = newName,
+                        onValueChange = { newName = it },
+                        label = { Text("Название подкатегории") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            if (newName.isNotBlank()) {
+                                onAddSubcategory(newName.trim(), expandedParentId!!)
+                                showAddChild = false
+                                newName = ""
+                            }
+                        })
+                    )
+                    Button(
+                        onClick = {
+                            if (newName.isNotBlank()) {
+                                onAddSubcategory(newName.trim(), expandedParentId!!)
+                                showAddChild = false
+                                newName = ""
+                            }
+                        },
+                        enabled = newName.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Сохранить") }
                 }
             }
         },
