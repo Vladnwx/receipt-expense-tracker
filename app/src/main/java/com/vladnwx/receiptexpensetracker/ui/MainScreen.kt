@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.vladnwx.receiptexpensetracker.BuildConfig
 import com.vladnwx.receiptexpensetracker.R
 import com.vladnwx.receiptexpensetracker.ui.accounts.AccountsScreen
 import com.vladnwx.receiptexpensetracker.ui.advances.AdvancesScreen
@@ -194,7 +195,7 @@ fun MainScreen() {
             if (subScreen == null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "v1.0 — github.com/Vladnwx/receipt-expense-tracker",
+                    text = "v${BuildConfig.VERSION_NAME} — github.com/Vladnwx/receipt-expense-tracker",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
