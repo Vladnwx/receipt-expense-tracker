@@ -69,13 +69,29 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseScreen(isIncome: Boolean = false, viewModel: ExpenseViewModel = hiltViewModel(key = if (isIncome) "income" else "expense")) {
+fun ExpenseScreen(isIncome: Boolean = false, sharedImageUri: android.net.Uri? = null, viewModel: ExpenseViewModel = hiltViewModel(key = if (isIncome) "income" else "expense")) {
     LaunchedEffect(isIncome) {
         viewModel.configure(if (isIncome) OperationType.INCOME else OperationType.EXPENSE)
     }
 
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+
+    LaunchedEffect(sharedImageUri) {
+        if (sharedImageUri != null) {
+            try {
+                val inputStream = context.contentResolver.openInputStream(sharedImageUri)
+                val fileName = "shared_${System.currentTimeMillis()}.jpg"
+                val outputFile = java.io.File(context.filesDir, fileName)
+                inputStream?.use { input ->
+                    outputFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                viewModel.setAttachment(outputFile.absolutePath, fileName)
+            } catch (_: Exception) { }
+        }
+    }
 
     var showCategoryDialog by remember { mutableStateOf(false) }
     var showAccountDialog by remember { mutableStateOf(false) }

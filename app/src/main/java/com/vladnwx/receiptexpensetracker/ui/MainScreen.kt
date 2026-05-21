@@ -1,5 +1,6 @@
 package com.vladnwx.receiptexpensetracker.ui
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -63,11 +64,18 @@ enum class SubScreen { HISTORY, SETTINGS, CATEGORIES }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(sharedImageUri: Uri? = null) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(if (sharedImageUri != null) Tab.EXPENSE.ordinal else 0) }
     var subScreen by remember { mutableStateOf<SubScreen?>(null) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var consumedSharedUri by remember { mutableStateOf(sharedImageUri) }
+
+    LaunchedEffect(consumedSharedUri) {
+        if (consumedSharedUri != null) {
+            selectedTab = Tab.EXPENSE.ordinal
+        }
+    }
 
     fun msg(id: Int) = context.getString(id)
 
@@ -80,7 +88,7 @@ fun MainScreen() {
         null -> {
             {
                 when (tabs[selectedTab]) {
-                    Tab.EXPENSE -> ExpenseScreen()
+                    Tab.EXPENSE -> ExpenseScreen(sharedImageUri = consumedSharedUri)
                     Tab.INCOME -> IncomeScreen()
                     Tab.TRANSFER -> TransferScreen()
                     Tab.DEBTS -> DebtsScreen()
