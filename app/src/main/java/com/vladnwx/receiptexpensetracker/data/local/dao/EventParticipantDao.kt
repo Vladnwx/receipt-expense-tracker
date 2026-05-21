@@ -16,6 +16,12 @@ interface EventParticipantDao {
     @Query("SELECT * FROM event_participants WHERE eventId = :eventId")
     suspend fun getByEventId(eventId: Long): List<EventParticipantEntity>
 
+    @Query("SELECT * FROM event_participants ORDER BY eventId ASC")
+    suspend fun getAll(): List<EventParticipantEntity>
+
     @Query("DELETE FROM event_participants WHERE eventId = :eventId")
     suspend fun deleteByEventId(eventId: Long)
+
+    @Query("DELETE FROM event_participants")
+    suspend fun deleteAll()
 }

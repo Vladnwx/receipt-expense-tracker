@@ -13,9 +13,15 @@ interface DebtPaymentDao {
     @Query("SELECT * FROM debt_payments WHERE debtId = :debtId ORDER BY date DESC")
     suspend fun getByDebtId(debtId: Long): List<DebtPaymentEntity>
 
+    @Query("SELECT * FROM debt_payments ORDER BY date DESC")
+    suspend fun getAll(): List<DebtPaymentEntity>
+
     @Query("SELECT SUM(amount) FROM debt_payments WHERE debtId = :debtId")
     suspend fun getTotalPaid(debtId: Long): Double?
 
     @Query("DELETE FROM debt_payments WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM debt_payments")
+    suspend fun deleteAll()
 }

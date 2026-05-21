@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Receipt Expense Tracker</string>
+    <string name="app_name">Учёт расходов</string>
     <string name="app_expense">Расходы</string>
     <string name="app_income">Доходы</string>
     <string name="app_transfer">Перевод</string>

@@ -18,4 +18,7 @@ interface TransferDao {
 
     @Query("DELETE FROM transfers WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM transfers")
+    suspend fun deleteAll()
 }

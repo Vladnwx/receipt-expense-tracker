@@ -1,10 +1,12 @@
 package com.vladnwx.receiptexpensetracker.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -123,31 +125,6 @@ fun MainScreen() {
             } else {
                 TopAppBar(
                     title = { Text(msg(R.string.app_name)) },
-                    actions = {
-                        Row {
-                            Text(
-                                text = msg(R.string.app_history),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier
-                                    .clickable { subScreen = SubScreen.HISTORY }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                            )
-                            Text(
-                                text = msg(R.string.app_settings),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier
-                                    .clickable { subScreen = SubScreen.SETTINGS }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                            )
-                            Text(
-                                text = msg(R.string.app_github),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier
-                                    .clickable { showAboutDialog = true }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                            )
-                        }
-                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -162,6 +139,35 @@ fun MainScreen() {
                 .padding(padding)
         ) {
             if (subScreen == null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = msg(R.string.app_history),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable { subScreen = SubScreen.HISTORY }
+                            .padding(vertical = 4.dp)
+                    )
+                    Text(
+                        text = msg(R.string.app_settings),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable { subScreen = SubScreen.SETTINGS }
+                            .padding(vertical = 4.dp)
+                    )
+                    Text(
+                        text = msg(R.string.app_github),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable { showAboutDialog = true }
+                            .padding(vertical = 4.dp)
+                    )
+                }
+
                 ScrollableTabRow(
                     selectedTabIndex = selectedTab,
                     edgePadding = 8.dp,

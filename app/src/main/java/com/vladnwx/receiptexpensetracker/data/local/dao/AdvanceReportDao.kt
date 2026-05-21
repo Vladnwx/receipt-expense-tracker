@@ -29,4 +29,7 @@ interface AdvanceReportDao {
 
     @Query("DELETE FROM advance_reports WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM advance_reports")
+    suspend fun deleteAll()
 }
