@@ -11,6 +11,7 @@ import com.vladnwx.receiptexpensetracker.data.local.entity.OperationType
 import com.vladnwx.receiptexpensetracker.data.repository.AccountRepository
 import com.vladnwx.receiptexpensetracker.data.repository.CategoryRepository
 import com.vladnwx.receiptexpensetracker.data.repository.ExpenseRepository
+import com.vladnwx.receiptexpensetracker.data.reporter.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,6 +64,7 @@ class ExpenseViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
+            AppLogger.d("ExpenseVM", "loadData: operationType=$operationType")
             val categories = categoryRepository.getAll()
             val parents = categoryRepository.getParents()
             val childrenMap = mutableMapOf<Long, List<CategoryEntity>>()
@@ -70,6 +72,7 @@ class ExpenseViewModel @Inject constructor(
                 childrenMap[p.id] = categoryRepository.getChildren(p.id)
             }
             val accounts = accountRepository.getAll()
+            AppLogger.d("ExpenseVM", "loaded ${categories.size} categories, ${accounts.size} accounts")
             _state.value = _state.value.copy(
                 categories = categories,
                 childrenMap = childrenMap,
@@ -167,10 +170,12 @@ class ExpenseViewModel @Inject constructor(
         val s = _state.value
         val amount = parseAmount(s.amountText)
         if (amount == null || amount <= 0) {
+            AppLogger.w("ExpenseVM", "save: amount invalid: ${s.amountText}")
             _state.value = s.copy(error = "Укажите сумму больше 0")
             return
         }
         if (s.selectedCategory == null) {
+            AppLogger.w("ExpenseVM", "save: category not selected")
             _state.value = s.copy(error = "Выберите категорию")
             return
         }
@@ -179,6 +184,7 @@ class ExpenseViewModel @Inject constructor(
         val effectiveAmount = if (quantity != null && price != null) quantity * price else amount
 
         viewModelScope.launch {
+            AppLogger.d("ExpenseVM", "save: type=$operationType amount=$effectiveAmount cat=${s.selectedCategory?.name} acc=${s.selectedAccount?.name}")
             expenseRepository.save(ExpenseEntity(
                 type = operationType,
                 categoryId = s.selectedCategory.id,
@@ -194,6 +200,7 @@ class ExpenseViewModel @Inject constructor(
             ))
             updateWidget()
             _state.value = _state.value.copy(saved = true)
+            AppLogger.d("ExpenseVM", "save: success")
         }
     }
 
