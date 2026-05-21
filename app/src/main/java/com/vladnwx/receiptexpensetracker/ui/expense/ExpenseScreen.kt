@@ -307,18 +307,20 @@ fun ExpenseScreen(isIncome: Boolean = false, sharedImageUri: android.net.Uri? = 
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Семейный расход", modifier = Modifier.weight(1f))
-                Switch(
-                    checked = state.isFamilyExpense,
-                    onCheckedChange = {
-                        viewModel.onFamilyChanged(it)
-                        if (it) showFamilySheet = true
-                    }
-                )
+            if (viewModel.operationType == OperationType.EXPENSE) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Семейный расход", modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = state.isFamilyExpense,
+                        onCheckedChange = {
+                            viewModel.onFamilyChanged(it)
+                            if (it) showFamilySheet = true
+                        }
+                    )
+                }
             }
 
             Button(
