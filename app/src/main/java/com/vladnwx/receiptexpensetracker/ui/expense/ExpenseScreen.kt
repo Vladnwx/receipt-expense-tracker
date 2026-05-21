@@ -109,14 +109,15 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = if (viewModel.operationType == OperationType.INCOME) "+" else "−",
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.headlineLarge,
                 color = if (viewModel.operationType == OperationType.INCOME) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 4.dp)
             )
 
             OutlinedTextField(
