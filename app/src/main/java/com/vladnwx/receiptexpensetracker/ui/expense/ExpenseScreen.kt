@@ -69,7 +69,11 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
+fun ExpenseScreen(isIncome: Boolean = false, viewModel: ExpenseViewModel = hiltViewModel(key = if (isIncome) "income" else "expense")) {
+    LaunchedEffect(isIncome) {
+        viewModel.configure(if (isIncome) OperationType.INCOME else OperationType.EXPENSE)
+    }
+
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
@@ -294,10 +298,19 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
                 onClick = { viewModel.save() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                enabled = state.amountText.isNotBlank()
+                    .height(50.dp)
             ) {
                 Text("Сохранить", fontSize = 16.sp)
+            }
+
+            val errorText = state.error
+            if (errorText != null) {
+                Text(
+                    text = errorText,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))

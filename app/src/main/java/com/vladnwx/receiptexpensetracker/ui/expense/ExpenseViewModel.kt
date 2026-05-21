@@ -32,7 +32,8 @@ data class ExpenseFormState(
     val categories: List<CategoryEntity> = emptyList(),
     val childrenMap: Map<Long, List<CategoryEntity>> = emptyMap(),
     val accounts: List<AccountEntity> = emptyList(),
-    val saved: Boolean = false
+    val saved: Boolean = false,
+    val error: String? = null
 )
 
 @HiltViewModel
@@ -53,6 +54,7 @@ class ExpenseViewModel @Inject constructor(
 
     fun configure(type: OperationType) {
         operationType = type
+        loadData()
     }
 
     init {
@@ -78,17 +80,18 @@ class ExpenseViewModel @Inject constructor(
     }
 
     fun onAmountChanged(text: String) {
-        _state.value = _state.value.copy(amountText = text)
+        _state.value = _state.value.copy(amountText = text, error = null)
     }
 
     fun onDateChanged(millis: Long) {
-        _state.value = _state.value.copy(dateMillis = millis)
+        _state.value = _state.value.copy(dateMillis = millis, error = null)
     }
 
     fun onCategorySelected(category: CategoryEntity) {
         _state.value = _state.value.copy(
             selectedCategory = category,
-            isFamilyExpense = category.isFamilyDefault
+            isFamilyExpense = category.isFamilyDefault,
+            error = null
         )
     }
 
@@ -97,15 +100,15 @@ class ExpenseViewModel @Inject constructor(
     }
 
     fun onQuantityChanged(text: String) {
-        _state.value = _state.value.copy(quantityText = text)
+        _state.value = _state.value.copy(quantityText = text, error = null)
     }
 
     fun onPriceChanged(text: String) {
-        _state.value = _state.value.copy(priceText = text)
+        _state.value = _state.value.copy(priceText = text, error = null)
     }
 
     fun onDescriptionChanged(text: String) {
-        _state.value = _state.value.copy(description = text)
+        _state.value = _state.value.copy(description = text, error = null)
         if (text.length >= 3 && _state.value.selectedCategory == null) {
             suggestFromHistory(text)
         }
@@ -162,7 +165,15 @@ class ExpenseViewModel @Inject constructor(
 
     fun save() {
         val s = _state.value
-        val amount = parseAmount(s.amountText) ?: return
+        val amount = parseAmount(s.amountText)
+        if (amount == null || amount <= 0) {
+            _state.value = s.copy(error = "Укажите сумму больше 0")
+            return
+        }
+        if (s.selectedCategory == null) {
+            _state.value = s.copy(error = "Выберите категорию")
+            return
+        }
         val quantity = parseAmount(s.quantityText)
         val price = parseAmount(s.priceText)
         val effectiveAmount = if (quantity != null && price != null) quantity * price else amount
@@ -170,7 +181,7 @@ class ExpenseViewModel @Inject constructor(
         viewModelScope.launch {
             expenseRepository.save(ExpenseEntity(
                 type = operationType,
-                categoryId = s.selectedCategory?.id,
+                categoryId = s.selectedCategory.id,
                 accountId = s.selectedAccount?.id,
                 amount = effectiveAmount,
                 quantity = quantity,
