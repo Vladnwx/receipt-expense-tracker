@@ -1,6 +1,8 @@
 package com.vladnwx.receiptexpensetracker.ui.expense
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.vladnwx.receiptexpensetracker.data.local.entity.AccountEntity
 import com.vladnwx.receiptexpensetracker.data.local.entity.CategoryEntity
@@ -33,15 +35,23 @@ data class ExpenseFormState(
 
 @HiltViewModel
 class ExpenseViewModel @Inject constructor(
+    application: Application,
     private val expenseRepository: ExpenseRepository,
     private val categoryRepository: CategoryRepository,
     private val accountRepository: AccountRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
+
+    private val context: Context get() = getApplication()
 
     private val _state = MutableStateFlow(ExpenseFormState())
     val state = _state.asStateFlow()
 
-    private val operationType: OperationType = OperationType.EXPENSE
+    var operationType: OperationType = OperationType.EXPENSE
+        private set
+
+    fun configure(type: OperationType) {
+        operationType = type
+    }
 
     init {
         loadData()
@@ -94,6 +104,46 @@ class ExpenseViewModel @Inject constructor(
 
     fun onDescriptionChanged(text: String) {
         _state.value = _state.value.copy(description = text)
+        if (text.length >= 3 && _state.value.selectedCategory == null) {
+            suggestFromHistory(text)
+        }
+    }
+
+    private fun suggestFromHistory(desc: String) {
+        viewModelScope.launch {
+            val matches = expenseRepository.search(desc)
+            if (matches.isNotEmpty()) {
+                val best = matches.first()
+                val cat = best.categoryId?.let { id ->
+                    _state.value.categories.find { it.id == id }
+                }
+                val acc = best.accountId?.let { id ->
+                    _state.value.accounts.find { it.id == id }
+                }
+                if (cat != null && _state.value.selectedCategory == null) {
+                    _state.value = _state.value.copy(
+                        selectedCategory = cat,
+                        isFamilyExpense = cat.isFamilyDefault
+                    )
+                }
+                if (acc != null && _state.value.selectedAccount == null) {
+                    _state.value = _state.value.copy(selectedAccount = acc)
+                }
+            }
+        }
+    }
+
+    fun removeTag(tag: String) {
+        _state.value = _state.value.copy(
+            tags = _state.value.tags - tag
+        )
+    }
+
+    fun addTag(tag: String) {
+        if (tag.isBlank() || _state.value.tags.contains(tag)) return
+        _state.value = _state.value.copy(
+            tags = _state.value.tags + tag
+        )
     }
 
     fun onFamilyChanged(value: Boolean) {
@@ -120,8 +170,16 @@ class ExpenseViewModel @Inject constructor(
                 date = s.dateMillis,
                 isFamilyExpense = s.isFamilyExpense
             ))
+            updateWidget()
             _state.value = _state.value.copy(saved = true)
         }
+    }
+
+    private suspend fun updateWidget() {
+        try {
+            val total = expenseRepository.getTotal()
+            com.vladnwx.receiptexpensetracker.WidgetUpdater.updateBalance(context, total)
+        } catch (_: Exception) { }
     }
 
     fun resetForm() {

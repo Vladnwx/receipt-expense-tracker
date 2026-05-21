@@ -33,6 +33,9 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses WHERE accountId = :accountId ORDER BY date DESC")
     suspend fun getByAccountId(accountId: Long): List<ExpenseEntity>
 
+    @Query("SELECT * FROM expenses WHERE type = :type AND date BETWEEN :start AND :end ORDER BY date DESC")
+    suspend fun getExpensesByTypeAndDateRange(type: OperationType, start: Long, end: Long): List<ExpenseEntity>
+
     @Query("SELECT * FROM expenses WHERE date BETWEEN :start AND :end ORDER BY date DESC")
     suspend fun getByDateRange(start: Long, end: Long): List<ExpenseEntity>
 
@@ -62,4 +65,7 @@ interface ExpenseDao {
 
     @Query("DELETE FROM expenses WHERE receiptId = :receiptId")
     suspend fun deleteByReceiptId(receiptId: Long)
+
+    @Query("DELETE FROM expenses")
+    suspend fun deleteAll()
 }

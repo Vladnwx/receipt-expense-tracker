@@ -26,4 +26,7 @@ interface AccountDao {
 
     @Query("SELECT * FROM accounts WHERE includeInBudget = 1 ORDER BY sortOrder ASC")
     suspend fun getBudgetAccounts(): List<AccountEntity>
+
+    @Query("DELETE FROM accounts")
+    suspend fun deleteAll()
 }

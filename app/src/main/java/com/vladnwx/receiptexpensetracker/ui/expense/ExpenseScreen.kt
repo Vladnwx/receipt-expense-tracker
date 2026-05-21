@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,16 +30,16 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
-import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vladnwx.receiptexpensetracker.data.local.entity.AccountEntity
 import com.vladnwx.receiptexpensetracker.data.local.entity.CategoryEntity
+import com.vladnwx.receiptexpensetracker.data.local.entity.OperationType
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,8 +72,8 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
     var showCategoryDialog by remember { mutableStateOf(false) }
     var showAccountDialog by remember { mutableStateOf(false) }
     var showDateDialog by remember { mutableStateOf(false) }
-    var categoryParentExpanded by remember { mutableStateOf<Long?>(null) }
     var tagInput by remember { mutableStateOf("") }
+    var showFamilySheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.saved) {
         if (state.saved) {
@@ -89,9 +91,9 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "−",
+                text = if (viewModel.operationType == OperationType.INCOME) "+" else "−",
                 style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.error,
+                color = if (viewModel.operationType == OperationType.INCOME) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
                 fontWeight = FontWeight.Bold
             )
 
@@ -197,7 +199,7 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
                 state.tags.forEach { tag ->
                     InputChip(
                         selected = false,
-                        onClick = {},
+                        onClick = { viewModel.removeTag(tag) },
                         label = { Text(tag, style = MaterialTheme.typography.bodySmall) },
                         trailingIcon = {
                             Icon(
@@ -205,7 +207,7 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
                                 contentDescription = "Удалить",
                                 modifier = Modifier
                                     .size(14.dp)
-                                    .clickable { }
+                                    .clickable { viewModel.removeTag(tag) }
                             )
                         }
                     )
@@ -216,7 +218,10 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
                     placeholder = { Text("Тег") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    keyboardActions = KeyboardActions(
+                        onDone = { viewModel.addTag(tagInput.trim()); tagInput = "" }
+                    )
                 )
             }
 
@@ -236,7 +241,10 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
                 Text("Семейный расход", modifier = Modifier.weight(1f))
                 Switch(
                     checked = state.isFamilyExpense,
-                    onCheckedChange = { viewModel.onFamilyChanged(it) }
+                    onCheckedChange = {
+                        viewModel.onFamilyChanged(it)
+                        if (it) showFamilySheet = true
+                    }
                 )
             }
 
@@ -295,6 +303,52 @@ fun ExpenseScreen(viewModel: ExpenseViewModel = hiltViewModel()) {
             },
             onDismiss = { showAccountDialog = false }
         )
+    }
+
+    if (showFamilySheet) {
+        val sheetState = rememberModalBottomSheetState()
+        ModalBottomSheet(
+            onDismissRequest = { showFamilySheet = false },
+            sheetState = sheetState
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text("Семейный расход", style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val amount = state.amountText.replace(",", ".").toDoubleOrNull() ?: 0.0
+                val half = amount / 2
+
+                Text("Сумма: ${String.format("%.2f", amount)} ₽",
+                    style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Участник 1 (Вы)", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        Text("${String.format("%.2f", half)} ₽",
+                            color = androidx.compose.ui.graphics.Color(0xFF4CAF50))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Участник 2", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        Text("${String.format("%.2f", half)} ₽",
+                            color = androidx.compose.ui.graphics.Color(0xFF2196F3))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Разделение 50/50", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = { showFamilySheet = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Понятно")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
     }
 }
 
