@@ -137,6 +137,19 @@ class ScanViewModel @Inject constructor(
         description: String,
         categoryId: Long
     ) {
+        val fn = fnsJson.fn ?: ""
+        val fd = fnsJson.fd ?: ""
+        val fp = fnsJson.fp ?: ""
+
+        val existing = if (fn.isNotBlank() && fd.isNotBlank() && fp.isNotBlank()) {
+            receiptDao.findByFiscalInfo(fn, fd, fp)
+        } else null
+
+        if (existing != null) {
+            _state.value = _state.value.copy(error = "Чек уже сохранён")
+            return
+        }
+
         val rawId = receiptRawDao.insert(ReceiptRawEntity(
             rawData = scanned.raw,
             format = "json",
@@ -145,9 +158,9 @@ class ScanViewModel @Inject constructor(
 
         val receiptId = receiptDao.insert(ReceiptEntity(
             rawId = rawId,
-            fiscalDriveNumber = fnsJson.fn ?: "",
-            fiscalDocumentNumber = fnsJson.fd ?: "",
-            fiscalSign = fnsJson.fp ?: "",
+            fiscalDriveNumber = fn,
+            fiscalDocumentNumber = fd,
+            fiscalSign = fp,
             amount = scanned.sum,
             date = parseDate(scanned.date) ?: System.currentTimeMillis(),
             retailerName = fnsJson.retailerName,
@@ -170,12 +183,14 @@ class ScanViewModel @Inject constructor(
             receiptItemDao.insertAll(items)
         }
 
+        val storeName = fnsJson.retailPlace?.takeIf { it.isNotBlank() }
+            ?: fnsJson.retailerName
         expenseDao.insert(ExpenseEntity(
             amount = scanned.sum,
             categoryId = categoryId,
             accountId = null,
             description = description.ifBlank {
-                fnsJson.retailerName ?: "Чек ${fnsJson.fn ?: ""}"
+                storeName ?: "Чек ${fn.take(8)}"
             },
             date = parseDate(scanned.date) ?: System.currentTimeMillis(),
             receiptId = receiptId,

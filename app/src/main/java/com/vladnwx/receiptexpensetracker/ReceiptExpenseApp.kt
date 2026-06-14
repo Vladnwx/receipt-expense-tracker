@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 class ReceiptExpenseApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        AppLogger.init(this)
+        AppLogger.init()
         setupCrashHandler()
     }
 

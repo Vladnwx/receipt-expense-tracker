@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         if (sharedJson != null) {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             clipboard.setPrimaryClip(ClipData.newPlainText("FNS JSON", sharedJson))
-            Toast.makeText(this, "JSON скопирован в буфер обмена", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "JSON чека скопирован в буфер обмена", Toast.LENGTH_LONG).show()
         }
 
         setContent {
@@ -45,19 +45,37 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun extractSharedJson(intent: Intent?): String? {
-        if (intent?.action != Intent.ACTION_SEND) return null
+        if (intent == null) return null
         if (intent.type?.startsWith("image/") == true) return null
 
-        val text = intent.getStringExtra(Intent.EXTRA_TEXT)
-        if (!text.isNullOrBlank()) return text
+        when (intent.action) {
+            Intent.ACTION_SEND -> {
+                val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+                if (!text.isNullOrBlank()) return text
 
-        val streamUri: Uri? = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
-        if (streamUri != null) {
-            return try {
-                contentResolver.openInputStream(streamUri)?.bufferedReader()?.use { it.readText() }
-            } catch (_: Exception) { null }
+                val streamUri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+                if (streamUri != null) return readUriContent(streamUri)
+            }
+            Intent.ACTION_SEND_MULTIPLE -> {
+                val uris = IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+                if (!uris.isNullOrEmpty()) {
+                    val results = uris.mapNotNull { readUriContent(it) }
+                    if (results.isNotEmpty()) return results.joinToString("\n---\n")
+                }
+            }
         }
-
         return null
+    }
+
+    private fun readUriContent(uri: Uri): String? {
+        return try {
+            contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+        } catch (e: SecurityException) {
+            Toast.makeText(this, "Нет прав на чтение файла", Toast.LENGTH_SHORT).show()
+            null
+        } catch (e: Exception) {
+            Toast.makeText(this, "Ошибка чтения: ${e.message}", Toast.LENGTH_SHORT).show()
+            null
+        }
     }
 }

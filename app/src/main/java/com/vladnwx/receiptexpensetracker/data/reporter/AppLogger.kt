@@ -1,6 +1,5 @@
 package com.vladnwx.receiptexpensetracker.data.reporter
 
-import android.content.Context
 import android.util.Log
 import com.vladnwx.receiptexpensetracker.BuildConfig
 import java.io.BufferedReader
@@ -17,7 +16,7 @@ object AppLogger {
     private var pid: String? = null
     private val buffer = ArrayDeque<String>(BUFFER_SIZE)
 
-    fun init(context: Context) {
+    fun init() {
         pid = android.os.Process.myPid().toString()
     }
 

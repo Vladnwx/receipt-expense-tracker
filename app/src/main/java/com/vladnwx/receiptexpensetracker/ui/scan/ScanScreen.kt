@@ -91,6 +91,7 @@ fun ScanScreen(sharedJson: String? = null, viewModel: ScanViewModel = hiltViewMo
 
                             val barcodeScanner = BarcodeScanning.getClient()
 
+                            @Suppress("DEPRECATION")
                             val imageAnalysis = ImageAnalysis.Builder()
                                 .setTargetResolution(Size(1280, 720))
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -154,6 +155,7 @@ fun ScanScreen(sharedJson: String? = null, viewModel: ScanViewModel = hiltViewMo
             fp = state.scanned!!.fp,
             date = state.scanned!!.date,
             retailerName = state.fnsJson?.retailerName,
+            retailPlace = state.fnsJson?.retailPlace,
             items = state.fnsJson?.items ?: emptyList(),
             onSave = { desc, catId -> viewModel.save(desc, catId) },
             onClear = { viewModel.clear() },
@@ -170,6 +172,7 @@ private fun ScannedResultCard(
     fp: String?,
     date: String? = null,
     retailerName: String? = null,
+    retailPlace: String? = null,
     items: List<com.vladnwx.receiptexpensetracker.data.util.FnsJsonItem> = emptyList(),
     onSave: (String, Long) -> Unit,
     onClear: () -> Unit,
@@ -187,8 +190,11 @@ private fun ScannedResultCard(
         ) {
             Text("Результат", style = MaterialTheme.typography.titleLarge)
 
+            if (retailPlace != null) {
+                Text(retailPlace, style = MaterialTheme.typography.titleMedium)
+            }
             if (retailerName != null) {
-                Text(retailerName, style = MaterialTheme.typography.titleMedium)
+                Text(retailerName, style = MaterialTheme.typography.bodyMedium)
             }
 
             Text("Сумма: ${String.format("%.2f", sum)} ₽",

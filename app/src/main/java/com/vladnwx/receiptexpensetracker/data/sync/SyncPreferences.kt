@@ -12,11 +12,12 @@ import javax.inject.Singleton
 class SyncPreferences @Inject constructor(
     @ApplicationContext context: Context
 ) {
+    @Suppress("DEPRECATION")
     private val prefs: SharedPreferences by lazy {
-        val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
         EncryptedSharedPreferences.create(
             "sync_prefs",
-            masterKey,
+            masterKeyAlias,
             context,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM

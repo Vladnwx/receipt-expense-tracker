@@ -210,7 +210,7 @@ class ExpenseViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            AppLogger.d("ExpenseVM", "save: type=$operationType amount=$effectiveAmount cat=${s.selectedCategory?.name} acc=${s.selectedAccount?.name}")
+            AppLogger.d("ExpenseVM", "save: type=$operationType amount=$effectiveAmount cat=${s.selectedCategory.name} acc=${s.selectedAccount?.name}")
             expenseRepository.save(ExpenseEntity(
                 type = operationType,
                 categoryId = s.selectedCategory.id,

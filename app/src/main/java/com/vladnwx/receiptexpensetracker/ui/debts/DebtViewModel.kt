@@ -60,7 +60,7 @@ class DebtViewModel @Inject constructor(
 
     fun createDebt(contactId: Long, amount: Double, dueDate: Long?, description: String?) {
         viewModelScope.launch {
-            val debtId = debtRepository.save(DebtEntity(
+            debtRepository.save(DebtEntity(
                 contactId = contactId,
                 amount = amount,
                 type = _state.value.createType,
