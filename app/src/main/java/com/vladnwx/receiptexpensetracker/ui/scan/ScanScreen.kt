@@ -45,10 +45,16 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 
 @Composable
-fun ScanScreen(viewModel: ScanViewModel = hiltViewModel()) {
+fun ScanScreen(sharedJson: String? = null, viewModel: ScanViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    LaunchedEffect(sharedJson) {
+        if (sharedJson != null) {
+            viewModel.onJsonReceived(sharedJson)
+        }
+    }
 
     if (state.scanned == null) {
         var hasCamera by remember { mutableStateOf(
@@ -146,6 +152,9 @@ fun ScanScreen(viewModel: ScanViewModel = hiltViewModel()) {
             fn = state.scanned!!.fn,
             fd = state.scanned!!.fd,
             fp = state.scanned!!.fp,
+            date = state.scanned!!.date,
+            retailerName = state.fnsJson?.retailerName,
+            items = state.fnsJson?.items ?: emptyList(),
             onSave = { desc, catId -> viewModel.save(desc, catId) },
             onClear = { viewModel.clear() },
             saved = state.saved
@@ -159,6 +168,9 @@ private fun ScannedResultCard(
     fn: String?,
     fd: String?,
     fp: String?,
+    date: String? = null,
+    retailerName: String? = null,
+    items: List<com.vladnwx.receiptexpensetracker.data.util.FnsJsonItem> = emptyList(),
     onSave: (String, Long) -> Unit,
     onClear: () -> Unit,
     saved: Boolean
@@ -171,18 +183,34 @@ private fun ScannedResultCard(
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Результат сканирования", style = MaterialTheme.typography.titleLarge)
+            Text("Результат", style = MaterialTheme.typography.titleLarge)
+
+            if (retailerName != null) {
+                Text(retailerName, style = MaterialTheme.typography.titleMedium)
+            }
 
             Text("Сумма: ${String.format("%.2f", sum)} ₽",
                 style = MaterialTheme.typography.headlineMedium)
 
-            if (fn != null) Text("ФН: $fn", style = MaterialTheme.typography.bodyMedium)
-            if (fd != null) Text("ФД: $fd", style = MaterialTheme.typography.bodyMedium)
-            if (fp != null) Text("ФП: $fp", style = MaterialTheme.typography.bodyMedium)
+            if (date != null) Text(date, style = MaterialTheme.typography.bodyMedium)
+            if (fn != null) Text("ФН: $fn", style = MaterialTheme.typography.bodySmall)
+            if (fd != null) Text("ФД: $fd", style = MaterialTheme.typography.bodySmall)
+            if (fp != null) Text("ФП: $fp", style = MaterialTheme.typography.bodySmall)
 
-            Spacer(modifier = Modifier.height(8.dp))
+            if (items.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Товары:", style = MaterialTheme.typography.labelLarge)
+                items.forEach { item ->
+                    Text(
+                        "  ${item.name} — ${String.format("%.2f", item.price)} ₽ × ${String.format("%.0f", item.quantity)} = ${String.format("%.2f", item.sum)} ₽",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             OutlinedTextField(
                 value = description,

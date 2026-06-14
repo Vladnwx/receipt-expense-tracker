@@ -64,16 +64,30 @@ enum class SubScreen { HISTORY, SETTINGS, CATEGORIES }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(sharedImageUri: Uri? = null) {
+fun MainScreen(sharedImageUri: Uri? = null, sharedJson: String? = null) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableIntStateOf(if (sharedImageUri != null) Tab.EXPENSE.ordinal else 0) }
+    var selectedTab by remember {
+        mutableIntStateOf(
+            when {
+                sharedImageUri != null -> Tab.EXPENSE.ordinal
+                sharedJson != null -> Tab.SCAN.ordinal
+                else -> 0
+            }
+        )
+    }
     var subScreen by remember { mutableStateOf<SubScreen?>(null) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var consumedSharedUri by remember { mutableStateOf(sharedImageUri) }
+    var consumedSharedJson by remember { mutableStateOf(sharedJson) }
 
     LaunchedEffect(consumedSharedUri) {
         if (consumedSharedUri != null) {
             selectedTab = Tab.EXPENSE.ordinal
+        }
+    }
+    LaunchedEffect(consumedSharedJson) {
+        if (consumedSharedJson != null) {
+            selectedTab = Tab.SCAN.ordinal
         }
     }
 
@@ -96,7 +110,7 @@ fun MainScreen(sharedImageUri: Uri? = null) {
                     Tab.ADVANCES -> AdvancesScreen()
                     Tab.EVENTS -> EventsScreen()
                     Tab.SYNC -> SyncScreen()
-                    Tab.SCAN -> ScanScreen()
+                    Tab.SCAN -> ScanScreen(sharedJson = consumedSharedJson)
                     Tab.ACCOUNTS -> AccountsScreen()
                 }
             }
